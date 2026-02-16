@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\PetOwnerController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\VetController;
+use App\Http\Controllers\Auth\PetOwnerAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,28 +23,17 @@ Route::view('/terms', 'terms')->name('terms');
 Route::view('/privacy', 'privacy')->name('privacy');
 Route::view('/service', 'service')->name('service');
 Route::view('/service-single', 'service-single')->name('service.single');
+Route::view('/scan', 'public-scan')->name('public-scan');
+Route::get('/p/{unique_id}', [PetOwnerController::class, 'publicProfile'])->name('pet.public-profile');
 
 // Unified Login Routes
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Keep old static HTML links working (redirects)
-Route::redirect('/index.html', '/');
-Route::redirect('/about.html', '/about');
-Route::redirect('/blog.html', '/blog');
-Route::redirect('/contact.html', '/contact');
-Route::redirect('/faq.html', '/faq');
-Route::redirect('/terms.html', '/terms');
-Route::redirect('/privace.html', '/privacy');
-Route::redirect('/service.html', '/service');
-Route::redirect('/service-single.html', '/service-single');
-Route::redirect('/login.html', '/login');
+// Redirects are removed to prevent automatic redirection to login/home from old links
 
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\VetController;
-use App\Http\Controllers\PetOwnerController;
-use App\Http\Controllers\Auth\PetOwnerAuthController;
+// Middlewares and Dashboards
 
 Route::middleware(['auth'])->group(function () {
     // Admin Dashboard
@@ -50,6 +43,7 @@ Route::middleware(['auth'])->group(function () {
     // Vet Routes
     Route::get('/vet/dashboard', [VetController::class, 'dashboard'])->name('vet.dashboard');
     Route::get('/vet/pet-records', [VetController::class, 'petRecords'])->name('vet.pet-records');
+    Route::get('/vet/vaccination-status', [VetController::class, 'vaccinationStatus'])->name('vet.vaccination-status');
     Route::get('/vet/vaccinations', [VetController::class, 'vaccines'])->name('vet.vaccinations');
     Route::post('/vet/search-pet', [VetController::class, 'searchPet'])->name('vet.search-pet');
 
@@ -59,6 +53,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/admin/pet-records', [AdminController::class, 'petRecords'])->name('admin.pet-records');
 
+    Route::get('/admin/vaccination-status', [AdminController::class, 'vaccinationStatus'])->name('admin.vaccination-status');
     Route::get('/admin/vaccinations', [AdminController::class, 'vaccines'])->name('admin.vaccinations');
 
     // Placeholders
@@ -68,6 +63,9 @@ Route::middleware(['auth'])->group(function () {
     Route::view('/admin/vaccinations/create', 'admin.vaccinations-create')->name('admin.vaccinations.create');
     Route::view('/admin/reports', 'admin.reports')->name('admin.reports');
     Route::view('/admin/settings', 'admin.settings')->name('admin.settings');
+    Route::post('/admin/pets/{pet}/vaccinate', [AdminController::class, 'recordVaccination'])->name('admin.pets.vaccinate');
+    Route::put('/admin/pets/{pet}', [AdminController::class, 'updatePet'])->name('admin.pets.update');
+    Route::put('/admin/vaccines/{vaccine}', [AdminController::class, 'updateVaccine'])->name('admin.vaccines.update');
 });
 
 // Pet Owner Routes
@@ -79,6 +77,7 @@ Route::post('/pet-owner/login', [PetOwnerAuthController::class, 'login'])->name(
 
 Route::middleware('auth')->group(function () {
     Route::get('/pet-owner/dashboard', [PetOwnerController::class, 'dashboard'])->name('pet-owner.dashboard');
+    Route::post('/pet-owner/register-pet', [PetOwnerController::class, 'storePet'])->name('pet-owner.register-pet');
     Route::get('/pet-owner/digital-card/{pet}', [PetOwnerController::class, 'digitalCard'])->name('pet-owner.digital-card');
     Route::post('/pet-owner/logout', [PetOwnerAuthController::class, 'logout'])->name('pet-owner.logout');
 });

@@ -31,23 +31,50 @@
                     </div>
                 </div>
 
+                <!-- Scanner Section -->
+                <div class="card border-0 shadow-sm rounded-lg p-4 mb-4 bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="font-weight-bold mb-0 text-white"><i data-lucide="scan" class="mr-2"></i> Quick Patient
+                            Scan</h5>
+                        <span class="badge badge-warning">HARDWARE COMPATIBLE</span>
+                    </div>
+                    <form action="{{ route('vet.search-pet') }}" method="POST">
+                        @csrf
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control form-control-lg border-0 bg-light"
+                                placeholder="Scan QR or Enter ID..." autofocus autocomplete="off">
+                            <div class="input-group-append">
+                                <button class="btn btn-warning px-4" type="submit">SEARCH</button>
+                            </div>
+                        </div>
+                        <small class="text-white-50 mt-2 d-block">Instant redirection to pet medical records upon
+                            scan.</small>
+                    </form>
+                </div>
+
                 <!-- Recent Activity / Quick Actions (Mark5 style) -->
                 <div class="card border-0 shadow-sm rounded-lg p-4">
                     <h5 class="font-weight-bold mb-4">Quick Actions</h5>
                     <div class="row">
-                        <div class="col-md-4 mb-2">
+                        <div class="col-md-3 mb-2">
                             <a href="{{ route('admin.employees') }}"
                                 class="btn btn-light btn-block p-3 text-left font-weight-bold">
                                 <i data-lucide="user-plus" class="mr-2"></i> Add Staff
                             </a>
                         </div>
-                        <div class="col-md-4 mb-2">
-                            <a href="{{ route('admin.vaccinations') }}"
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ route('admin.vaccination-status') }}"
                                 class="btn btn-light btn-block p-3 text-left font-weight-bold">
-                                <i data-lucide="plus-circle" class="mr-2"></i> Add Vaccine
+                                <i data-lucide="syringe" class="mr-2"></i> Vax Status
                             </a>
                         </div>
-                        <div class="col-md-4 mb-2">
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ route('admin.vaccinations') }}"
+                                class="btn btn-light btn-block p-3 text-left font-weight-bold">
+                                <i data-lucide="boxes" class="mr-2"></i> Inventory
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
                             <a href="{{ route('admin.pet-records') }}"
                                 class="btn btn-light btn-block p-3 text-left font-weight-bold">
                                 <i data-lucide="search" class="mr-2"></i> Search Database

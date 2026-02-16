@@ -1,176 +1,135 @@
-@extends('index')
+@extends('layouts.dashboard')
 
 @section('content')
-<style>
-    .digital-card-container {
-        perspective: 1000px;
-        width: 100%;
-        max-width: 600px;
-        margin: 150px auto 100px;
-        cursor: pointer;
-    }
-
-    .digital-card {
-        width: 100%;
-        min-height: 400px;
-        position: relative;
-        transform-style: preserve-3d;
-        transition: transform 0.8s;
-        border-radius: 20px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-    }
-
-    .digital-card.flipped {
-        transform: rotateY(180deg);
-    }
-
-    .card-face {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        backface-visibility: hidden;
-        border-radius: 20px;
-        display: flex;
-        flex-direction: row;
-        overflow: hidden;
-        background: white;
-    }
-
-    .card-front {
-        background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
-    }
-
-    .card-back {
-        background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
-        color: white;
-        transform: rotateY(180deg);
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 30px;
-        text-align: center;
-    }
-
-    /* Left side of front card: Info */
-    .card-left {
-        flex: 1.5;
-        padding: 30px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-
-    /* Right side of front card: QR Code */
-    .card-right {
-        flex: 1;
-        background: #f0f0f0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-left: 2px dashed #ddd;
-    }
-
-    .pet-name {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #333;
-        margin-bottom: 0.5rem;
-    }
-
-    .pet-info {
-        font-size: 1.1rem;
-        color: #666;
-        margin-bottom: 0.5rem;
-    }
-
-    .registry-date {
-        margin-top: 1.5rem;
-        font-size: 0.9rem;
-        color: #999;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    .registry-date span {
-        display: block;
-        font-weight: 700;
-        color: #333;
-        font-size: 1.1rem;
-    }
-
-    .qr-label {
-        margin-top: 10px;
-        font-size: 0.8rem;
-        color: #999;
-        text-align: center;
-    }
-
-    .backup-id {
-        font-family: monospace;
-        background: #eee;
-        padding: 5px 10px;
-        border-radius: 5px;
-        margin-top: 10px;
-        display: none; /* User requested removal of backup ID text in favor of scanner, but we keep structure */
-    }
-
-    .tap-hint {
-        position: absolute;
-        bottom: 20px;
-        width: 100%;
-        text-align: center;
-        font-size: 0.8rem;
-        color: #aaa;
-        animation: bounce 2s infinite;
-    }
-
-    @keyframes bounce {
-        0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-        40% {transform: translateY(-5px);}
-        60% {transform: translateY(-3px);}
-    }
-
-</style>
-
-<div class="digital-card-container" onclick="this.querySelector('.digital-card').classList.toggle('flipped')">
-    <div class="digital-card">
-        <!-- Front Side -->
-        <div class="card-face card-front">
-            <div class="card-left">
-                <div class="pet-name">{{ $pet->name }}</div>
-                <div class="pet-info">{{ $pet->species }} • {{ $pet->breed }}</div>
-                <div class="pet-info">Born: {{ $pet->birthdate ? \Carbon\Carbon::parse($pet->birthdate)->format('M d, Y') : 'Unknown' }}</div>
-                
-                <div class="registry-date">
-                    Date of Registry
-                    <span>{{ \Carbon\Carbon::parse($pet->registry_date)->format('F d, Y') }}</span>
+    <div class="container py-5 fade-in">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="d-flex align-items-center mb-4">
+                    <a href="{{ route('pet-owner.dashboard') }}" class="btn btn-light rounded-circle mr-3">
+                        <i data-lucide="arrow-left"></i>
+                    </a>
+                    <h2 class="font-weight-bold mb-0">Pet Digital ID Card</h2>
                 </div>
 
-                <div class="tap-hint">Tap card to flip</div>
-            </div>
-            <div class="card-right">
-                <div style="text-align: center;">
-                    {{ $qrCode }}
-                    <!-- User requested: "Right-side of Digital Card show QR Scanner instead back-up Pet ID Number" 
-                         Since this is a static card view, showing the QR code itself acts as the scannable element. 
-                         The "Scanner" function is separate (for Admin/Vet). 
-                         So here we just show the QR Code prominently. -->
-                    <div class="qr-label">Scan Me</div>
+                <div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 30px;">
+                    <div class="card-body p-0">
+                        <div class="row no-gutters">
+                            <!-- Left Side: Information -->
+                            <div class="col-lg-7 p-4 p-md-5 bg-white">
+                                <div class="d-flex flex-column flex-sm-row align-items-sm-center mb-5">
+                                    <div class="mb-3 mb-sm-0 mr-sm-4">
+                                        <img src="{{ $pet->image_url ?? 'https://ui-avatars.com/api/?name=' . $pet->name }}"
+                                            class="rounded-circle shadow-sm"
+                                            style="width: 120px; height: 120px; object-fit: cover; border: 5px solid #fce7d6;">
+                                    </div>
+                                    <div>
+                                        <h1 class="font-weight-bold mb-1 pet-name-title"
+                                            style="font-size: 3rem; color: #1f2937;">{{ $pet->name }}</h1>
+                                        <p class="text-primary font-weight-bold h3 mb-0">
+                                            {{ $pet->breed ?? 'Unknown Breed' }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-5">
+                                    <div class="col-6">
+                                        <p class="mb-1 text-muted small text-uppercase font-weight-bold">Species</p>
+                                        <h5 class="font-weight-bold text-dark">{{ $pet->species }}</h5>
+                                    </div>
+                                    <div class="col-6">
+                                        <p class="mb-1 text-muted small text-uppercase font-weight-bold">Birthdate</p>
+                                        <h5 class="font-weight-bold text-dark small-responsive">
+                                            {{ $pet->birthdate ? \Carbon\Carbon::parse($pet->birthdate)->format('M d, Y') : 'N/A' }}
+                                        </h5>
+                                    </div>
+                                    <div class="col-12 mt-4 text-break">
+                                        <p class="mb-1 text-muted small text-uppercase font-weight-bold">Owner Name</p>
+                                        <h5 class="font-weight-bold text-dark">{{ $pet->user->name }}</h5>
+                                        <p class="small text-muted mb-0">
+                                            {{ $pet->user->city }}, {{ $pet->user->province }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="bg-light p-4 rounded-xl">
+                                    <p class="mb-3 text-muted small text-uppercase font-weight-bold border-bottom pb-2">
+                                        Recent Vaccinations</p>
+                                    @forelse($pet->vaccinations->take(2) as $vax)
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="font-weight-bold text-dark small">{{ $vax->vaccine_name }}</span>
+                                            <span
+                                                class="text-muted small">{{ \Carbon\Carbon::parse($vax->administered_at)->format('M d, Y') }}</span>
+                                        </div>
+                                    @empty
+                                        <p class="text-muted small mb-0">No records found.</p>
+                                    @endforelse
+                                </div>
+                            </div>
+
+                            <!-- Right Side: QR & ID -->
+                            <div class="col-lg-5 p-5 d-flex flex-column align-items-center justify-content-center border-left"
+                                style="background-color: #f8fafc !important;">
+                                <div class="bg-white p-4 shadow-sm rounded-xl mb-4">
+                                    {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(220)->generate(route('pet.public-profile', $pet->unique_id)) !!}
+                                </div>
+                                <h2 class="font-weight-bold text-dark mb-1" style="letter-spacing: 4px;">
+                                    {{ $pet->unique_id }}</h2>
+                                <p class="text-muted text-uppercase mb-5 text-center"
+                                    style="letter-spacing: 2px; font-size: 0.8rem;">Official Registry ID</p>
+
+                                <img src="{{ asset('assets/images/newlogo.png') }}" style="height: 40px; opacity: 0.5;">
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="bg-dark text-white p-3 text-center">
+                            <p class="mb-0 small" style="letter-spacing: 2px;">PAWCARE VETERINARY CLINIC • MEYCAUAYAN ANIMAL
+                                REGISTRY SYSTEM</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center d-print-none">
+                    <button onclick="window.print()" class="btn btn-outline-dark rounded-pill px-4 font-weight-bold">
+                        <i data-lucide="printer" class="mr-2"></i> Print Digital Card
+                    </button>
                 </div>
             </div>
-        </div>
-
-        <!-- Back Side -->
-        <div class="card-face card-back">
-            <img src="{{ asset('assets/images/newlogo.png') }}" alt="PawCare" style="height: 60px; margin-bottom: 20px; filter: brightness(0) invert(1);">
-            <h2>Official Digital ID</h2>
-            <p>This digital card certifies that {{ $pet->name }} is a registered member of the PawCare system.</p>
-            <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.8;">
-                Owner: {{ Auth::user()->name }}<br>
-                {{ Auth::user()->house_number }} {{ Auth::user()->street }}, {{ Auth::user()->barangay }}<br>
-                {{ Auth::user()->city }}, {{ Auth::user()->province }}
-            </p>
         </div>
     </div>
-</div>
+
+    <style>
+        @media (max-width: 576px) {
+            .pet-name-title {
+                font-size: 2.2rem !important;
+            }
+
+            .small-responsive {
+                font-size: 0.9rem !important;
+            }
+        }
+
+        @media print {
+            .main-content-wrapper {
+                padding: 0 !important;
+            }
+
+            #sidebar,
+            header,
+            .btn-light {
+                display: none !important;
+            }
+
+            .container {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #eee !important;
+            }
+        }
+    </style>
 @endsection

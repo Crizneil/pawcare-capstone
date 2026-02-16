@@ -1,59 +1,77 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PawCare - Veterinary Clinic Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+<!-- #### See the live demo [here](https://pawcare.example.com) -->
 
-## About Laravel
+## Description
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+> **Warning**
+> This project is still under active development.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+<br />
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**PawCare** is a comprehensive veterinary clinic management system built with **Laravel** and **MySQL**. It streamlines clinic operations by centralizing pet medical records, vaccination history, and vaccine inventory management. It was designed to provide a seamless experience for administrators, veterinarians, and pet owners through dedicated dashboards and interactive features.
 
-## Learning Laravel
+The platform includes a robust booking and vaccination management system, where clinic staff can manage pet patients, record medical events, and monitor vaccine stock levels in real-time. The system also features digital pet identity cards accessible via QR codes for quick verification.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Unlike the original ARKA build which relied on Next.js, this version leverages the power of the **Laravel 12** ecosystem, utilizing Eloquent ORM for database interactions and Blade templating for a dynamic and responsive UI. QR code generation is handled by `simplesoftwareio/simple-qrcode`, and the UI is polished with **Bootstrap** and **Lucide Icons**.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+<br />
 
-## Laravel Sponsors
+## Usage instructions:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+To explore the functionality of PawCare and its accompanying management systems, you can use the following demo credentials in the local environment:
 
-### Premium Partners
+- **Admin Account**: `admin@pawcare.com` / `password123`
+- **Vet Account**: `vet@pawcare.com` / `password123`
+- **Pet Owner Account**: `owner@pawcare.com` / `password123`
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Feel free to navigate the platform, and test various features, including pet enrollment, vaccination recording, and inventory management. Please note that data in the local environment is subject to reset during development.
 
-## Contributing
+**As this is a development environment, I would like to emphasize that the platform is intended for testing clinic workflows. Responsibility for data integrity remains with the local administrator. I appreciate your understanding and encourage responsible exploration of this management system.**
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+<br />
 
-## Code of Conduct
+![PawCare Dashboard Placeholder](https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+<br />
 
-## Security Vulnerabilities
+## Tech Stack
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- **Framework:** [Laravel 12](https://laravel.com)
+- **Authentication:** Laravel Session-based Auth
+- **Database:** MySQL
+- **ORM:** Eloquent ORM
+- **Graphics:** [Simple QR Code](https://github.com/SimpleSoftwareIO/simple-qrcode)
+- **Icons:** [Lucide Icons](https://lucide.dev/) & [Font Awesome](https://fontawesome.com/)
+- **Styling:** [Bootstrap 4](https://getbootstrap.com)
+- **Validation:** Laravel Request Validation
+- **Hosting:** Local / VPS
 
-## License
+<br />
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Features:
+
+- [x] Multi-role Authentication (Admin, Vet, Pet Owner)
+- [x] Unified Pet Database with Search functionality
+- [x] Centralized Vaccine Inventory (Manage Stock & Prices)
+- [x] Automatic Stock Deduction on Vaccination
+- [x] Digital Pet Identity Cards with unique QR codes
+- [x] Public Pet Profile accessible via QR Scan
+- [x] Vaccination Status Tracking (Vaccinated vs Unvaccinated)
+- [x] Responsive Dashboard UI for all roles
+- [x] Modern aesthetics with Glassmorphism and vibrant gradients
+
+<br />
+
+## Roadmap:
+
+- [ ] Implement mobile navigation for dashboards
+- [ ] Add Appointment Booking functionality
+- [ ] Implement automated Email/SMS reminders for next due dates
+- [ ] Add Financial Reports and Daily Sales tracking
+- [ ] Integrate real-time chat between Owners and Clinic
+- [ ] Cloud Storage for Pet medical documents (X-rays, Lab results)
+- [ ] Multi-language support
+- [ ] Dark Mode toggle
+- [ ] Comprehensive Unit and Feature testing
+- [ ] CI/CD pipeline implementation

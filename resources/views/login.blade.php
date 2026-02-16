@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -21,6 +22,7 @@
   <link href="{{ asset('assets/css/odometer-theme-default.css') }}" rel="stylesheet" />
   <link href="{{ asset('assets/sass/style.css') }}" rel="stylesheet" />
 </head>
+
 <body class="pawcare-login">
   <div class="bg"></div>
 
@@ -34,6 +36,9 @@
   </div>
 
   <div class="wrapper">
+    <a href="{{ route('home') }}" class="back-home-btn">
+      <i class="ti-arrow-left"></i> Back to Home
+    </a>
     <div class="card">
       <div class="login-view" id="emailView">
         <header class="logo-wrap">
@@ -212,4 +217,5 @@
     });
   </script>
 </body>
+
 </html>

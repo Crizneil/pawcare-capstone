@@ -43,6 +43,7 @@
         <!-- end preloader -->
 
         <!-- Start header -->
+        <!-- Start header -->
         <header id="header">
             <div class="wpo-site-header">
                 <nav class="navigation navbar navbar-expand-lg navbar-light">
@@ -60,8 +61,8 @@
                             </div>
                             <div class="col-lg-2 col-md-6 col-6">
                                 <div class="navbar-header">
-                                    <a class="navbar-brand" href="index.html"><img src="assets/images/newlogo.png"
-                                            alt=""></a>
+                                    <a class="navbar-brand" href="{{ route('home') }}"><img
+                                            src="assets/images/newlogo.png" alt=""></a>
                                 </div>
                             </div>
                             <div class="col-lg-7 col-md-1 col-1">
@@ -69,28 +70,28 @@
                                     <button class="menu-close"><i class="ti-close"></i></button>
                                     <ul class="nav navbar-nav mb-2 mb-lg-0">
                                         <li class="menu-item-has-children">
-                                            <a href="index.html">Home</a>
-                                            
+                                            <a href="{{ route('home') }}">Home</a>
+
                                         </li>
                                         <li class="menu-item-has-children">
                                             <a href="#">Page</a>
                                             <ul class="sub-menu">
-                                                <li><a href="about.html">About</a></li>
-                                                <li><a href="faq.html">Faq</a></li>
-                                                <li><a href="contact.html">Contact Us</a></li>
+                                                <li><a href="{{ route('about') }}">About</a></li>
+                                                <li><a href="{{ route('faq') }}">Faq</a></li>
+                                                <li><a href="{{ route('contact') }}">Contact Us</a></li>
                                             </ul>
                                         </li>
                                         <li class="menu-item-has-children">
                                             <a href="#">Services</a>
                                             <ul class="sub-menu">
-                                                <li><a href="service.html">Services</a></li>
-                                                <li><a href="service-single.html">Service Single</a></li>
+                                                <li><a href="{{ route('service') }}">Services</a></li>
+                                                <li><a href="{{ route('service.single') }}">Service Single</a></li>
                                             </ul>
                                         </li>
                                         <li class="menu-item-has-children">
                                             <a href="#">Blog</a>
                                             <ul class="sub-menu">
-                                                <li><a href="blog.html">Blog</a></li>
+                                                <li><a href="{{ route('blog') }}">Blog</a></li>
                                             </ul>
                                         </li>
                                     </ul>
@@ -135,350 +136,363 @@
         </header>
         <!-- end of header -->
 
-        <!-- start of hero-section -->
-        <section class="hero-section">
-            <div class="hero-inner-slider">
-                <div class="hero-inner">
-                    <h2>Trusted Pet Care Service</h2>
-                    <h3>Trusted Veterinary Care for Healthy, Happy Pets.</h3>
-                    <p>Providing safe vaccinations and continuous pet health monitoring you can rely on.</p>
-                    <a href="contact.html" class="theme-btn-s2">Update your Pet's Records</a>
-                </div>
-            </div>
-            <div class="hero-image">
-                <div class="top-image">
-                    <div class="item">
-                        <img src="assets/images/slider/slide-1.png" alt="">
-                    </div>
-                    <div class="item">
-                        <img src="assets/images/slider/slide-2.png" alt="">
-                    </div>
-                    <div class="item">
-                        <img src="assets/images/slider/slide-3.png" alt="">
-                    </div>
-                    <div class="item">
-                        <img src="assets/images/slider/slide-4.png" alt="">
-                    </div>
-                </div>
-                <div class="buttom-image">
-                    <div class="item">
-                        <img src="assets/images/slider/1.png" alt="">
-                    </div>
-                    <div class="item">
-                        <img src="assets/images/slider/2.png" alt="">
-                    </div>
-                    <div class="item">
-                        <img src="assets/images/slider/3.png" alt="">
-                    </div>
-                    <div class="item">
-                        <img src="assets/images/slider/4.png" alt="">
-                    </div>
-                </div>
-            </div>
-            <div class="paw-1">
-                <img src="assets/images/slider/shape-1.svg" alt="">
-            </div>
-            <div class="paw-2">
-                <img src="assets/images/slider/shape-2.svg" alt="">
-            </div>
-            <div class="paw-3">
-                <img src="assets/images/slider/shape-3.svg" alt="">
-            </div>
-            <div class="paw-4">
-                <img src="assets/images/slider/shape-4.svg" alt="">
-            </div>
-        </section>
-
-        <!-- start of service-section -->
-        <section class="service-section section-padding">
-            <div class="wraper" style="justify-content: center; gap: 80px;">
-                <div class="col">
-                    <div class="item" style="text-align: center; margin: 0 auto;">
-                        <div class="icon" style="margin: 0 auto;">
-                            <img src="assets/images/service/2.svg" alt="Pet Monitoring">
-                        </div>
-                        <div class="content">
-                            <h2><a href="service-single.html">Pet Monitoring</a></h2>
-                            <p>Continuous health monitoring to ensure your pet's well-being and safety. </p>
+        @if(Route::is('home'))
+            <!-- start of hero-section -->
+            <section class="hero-section">
+                <div class="hero-inner-slider">
+                    <div class="hero-inner">
+                        <h2>Trusted Pet Care Service</h2>
+                        <h3>Trusted Veterinary Care for Healthy, Happy Pets.</h3>
+                        <p>Providing safe vaccinations and continuous pet health monitoring you can rely on.</p>
+                        <div class="hero-btns" style="display: flex; gap: 10px; margin-top: 20px;">
+                            <a href="{{ route('public-scan') }}" class="theme-btn-s2">Scan Pet QR</a>
+                            <a href="contact.html" class="theme-btn-s3">Learn More</a>
                         </div>
                     </div>
                 </div>
-                <div class="col">
-                    <div class="item" style="text-align: center; margin: 0 auto;">
-                        <div class="icon" style="margin: 0 auto;">
-                            <img src="assets/images/service/4.svg" alt="Vaccination">
-                        </div>
-                        <div class="content">
-                            <h2><a href="service-single.html">Vaccination</a></h2>
-                            <p>Safe and reliable vaccination services to keep your pet healthy and protected. </p>
-                        </div>
-                    </div>
-                </div>
-                <div class="top-img-1" style="left: 50%; transform: translateX(-50%); margin-left: -150px;">
-                    <img src="assets/images/service/top-img-1.png" alt="">
-                </div>
-                <div class="top-img-2" style="left: 50%; transform: translateX(-50%); margin-left: 150px;">
-                    <img src="assets/images/service/top-img-2.png" alt="">
-                </div>
-            </div>
-        </section>
-
-        <!-- start of about-section -->
-        <section class="about-section section-padding pt-0">
-            <div class="wraper">
-                <div class="left">
-                    <div class="image">
-                        <img src="assets/images/about.png" alt="">
-                        <div class="shape">
-                            <svg width="793" height="786" viewBox="0 0 793 786" fill="none">
-                                <path
-                                    d="M84.9007 505.664C-181.681 609.802 245.585 843.801 512.633 772.246C713.751 718.356 833.104 511.631 779.214 310.513C725.325 109.395 552.6 -41.9576 351.482 11.9319C150.364 65.8214 351.482 401.526 84.9007 505.664Z"
-                                    fill="#FFEFEB" />
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="about-video">
-                        <div class="icon">
-                            <img src="assets/images/service/3.svg" alt="">
-                        </div>
-                        <h2>How To Take Care Of Your Favorite Pet. </h2>
-                        <p>Pamper your pet with professional grooming that ensures they look and feel their best.</p>
-                    </div>
-                </div>
-                <div class="right">
-                    <span>About Us</span>
-                    <h2>At PawCare, every vet visit counts</h2>
-                    <p>PawCare, is a student-developed veterinary system designed to support pet vaccination management
-                        and health monitoring. It aims to help veterinary clinics and pet owners ensure that pets receive 
-                        timely vaccinations and proper health tracking through and organized and digital approach.
-                        </p>
-
-                    <div class="about-btn">
-                        <a href="about.html" class="theme-btn-s2">Discover More</a>
-                    </div>
-                </div>
-            </div>
-            <div class="shape">
-                <img src="assets/images/paws-6.png" alt="">
-            </div>
-            <div class="shape-2">
-                <img src="assets/images/paws-7.png" alt="">
-            </div>
-        </section>
-
-        <!-- start of funfact-section -->
-        <section class="funfact-section">
-            <div class="section-top-image">
-                <img src="assets/images/funfact/top-image.jpg" alt="">
-            </div>
-            <div class="container">
-                <div class="row">
-                    <div class="col col-lg-4 col-md-6 col-12">
+                <div class="hero-image">
+                    <div class="top-image">
                         <div class="item">
-                            <div class="icon">
-                                <img src="assets/images/funfact/scanner.png" alt="">
-                            </div>
-                            <h3>Simple Scan</h3>
-                            <p class="hover-text">Instant access to pet records.</p>
+                            <img src="assets/images/slider/slide-1.png" alt="">
+                        </div>
+                        <div class="item">
+                            <img src="assets/images/slider/slide-2.png" alt="">
+                        </div>
+                        <div class="item">
+                            <img src="assets/images/slider/slide-3.png" alt="">
+                        </div>
+                        <div class="item">
+                            <img src="assets/images/slider/slide-4.png" alt="">
                         </div>
                     </div>
-                    <div class="col col-lg-4 col-md-6 col-12">
+                    <div class="buttom-image">
                         <div class="item">
-                            <div class="icon">
-                                <img src="assets/images/funfact/3.svg" alt="">
-                            </div>
-                            <h3>Quick Access to the Vet</h3>
-                            <p class="hover-text">Faster response, better care.</p>
+                            <img src="assets/images/slider/1.png" alt="">
                         </div>
-                    </div>
-                    <div class="col col-lg-4 col-md-6 col-12">
                         <div class="item">
-                            <div class="icon">
-                                <img src="assets/images/funfact/4.svg" alt="">
-                            </div>
-                            <h3>Personal Privacy</h3>
-                            <p class="hover-text">Secure and protected personal data.</p>
+                            <img src="assets/images/slider/2.png" alt="">
+                        </div>
+                        <div class="item">
+                            <img src="assets/images/slider/3.png" alt="">
+                        </div>
+                        <div class="item">
+                            <img src="assets/images/slider/4.png" alt="">
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+                <div class="paw-1">
+                    <img src="assets/images/slider/shape-1.svg" alt="">
+                </div>
+                <div class="paw-2">
+                    <img src="assets/images/slider/shape-2.svg" alt="">
+                </div>
+                <div class="paw-3">
+                    <img src="assets/images/slider/shape-3.svg" alt="">
+                </div>
+                <div class="paw-4">
+                    <img src="assets/images/slider/shape-4.svg" alt="">
+                </div>
+            </section>
+            <!-- end of hero-section -->
 
-        <!-- start of testimonial-section -->
-        <section class="testimonial-section section-padding">
-            <div class="container">
-                <div class="row justify-content-center">
-                    <div class="col-lg-6 col-12">
-                        <div class="section-title">
-                            <h3>Testimonials</h3>
-                            <h2>What People Say About PawCare</h2>
+            <!-- start of service-section -->
+            <section class="service-section section-padding">
+                <div class="wraper" style="justify-content: center; gap: 80px;">
+                    <div class="col">
+                        <div class="item" style="text-align: center; margin: 0 auto;">
+                            <div class="icon" style="margin: 0 auto;">
+                                <img src="assets/images/service/2.svg" alt="Pet Monitoring">
+                            </div>
+                            <div class="content">
+                                <h2><a href="service-single.html">Pet Monitoring</a></h2>
+                                <p>Continuous health monitoring to ensure your pet's well-being and safety. </p>
+                            </div>
                         </div>
                     </div>
+                    <div class="col">
+                        <div class="item" style="text-align: center; margin: 0 auto;">
+                            <div class="icon" style="margin: 0 auto;">
+                                <img src="assets/images/service/4.svg" alt="Vaccination">
+                            </div>
+                            <div class="content">
+                                <h2><a href="service-single.html">Vaccination</a></h2>
+                                <p>Safe and reliable vaccination services to keep your pet healthy and protected. </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="top-img-1" style="left: 50%; transform: translateX(-50%); margin-left: -150px;">
+                        <img src="assets/images/service/top-img-1.png" alt="">
+                    </div>
+                    <div class="top-img-2" style="left: 50%; transform: translateX(-50%); margin-left: 150px;">
+                        <img src="assets/images/service/top-img-2.png" alt="">
+                    </div>
                 </div>
-                <div class="row align-items-center">
-                    <div class="col-lg-6 col-12">
-                        <div class="testimonial-image">
-                            <img src="assets/images/testimonial.png" alt="">
+            </section>
+
+            <!-- start of about-section -->
+            <section class="about-section section-padding pt-0">
+                <div class="wraper">
+                    <div class="left">
+                        <div class="image">
+                            <img src="assets/images/about.png" alt="">
                             <div class="shape">
-                                <svg viewBox="0 0 932 866" fill="none">
+                                <svg width="793" height="786" viewBox="0 0 793 786" fill="none">
                                     <path
-                                        d="M809.592 217.287C836.009 315.879 817.135 440.087 766.796 546.355C716.445 652.649 634.907 740.4 536.578 766.747C339.293 819.609 136.508 702.532 83.6458 505.246C57.2312 406.666 77.0482 320.935 128.016 253.209C179.036 185.413 261.413 135.488 360.331 108.983C459.684 82.3613 559.022 60.3667 640.086 69.6483C680.555 74.2818 716.32 86.6978 745.237 110.108C774.137 133.505 796.397 168.045 809.592 217.287Z"
-                                        stroke="#FABE3D" stroke-width="5" />
-                                    <path
-                                        d="M772.667 241.253C819.838 417.297 705.161 683.804 529.117 730.975C353.074 778.146 172.122 673.674 124.952 497.63C77.7809 321.586 195.712 190.863 371.756 143.692C547.799 96.5215 725.496 65.2093 772.667 241.253Z"
-                                        fill="#FFF7E5" />
-                                    <mask id="mask0_1346_138" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="114"
-                                        y="106" width="670" height="637">
-                                        <path
-                                            d="M772.667 241.253C819.838 417.297 705.161 683.804 529.117 730.975C353.074 778.146 172.122 673.674 124.952 497.63C77.7809 321.586 195.712 190.863 371.756 143.692C547.799 96.5215 725.496 65.2093 772.667 241.253Z"
-                                            fill="#FFF7E5" />
-                                    </mask>
-                                    <g mask="url(#mask0_1346_138)">
-                                    </g>
+                                        d="M84.9007 505.664C-181.681 609.802 245.585 843.801 512.633 772.246C713.751 718.356 833.104 511.631 779.214 310.513C725.325 109.395 552.6 -41.9576 351.482 11.9319C150.364 65.8214 351.482 401.526 84.9007 505.664Z"
+                                        fill="#FFEFEB" />
                                 </svg>
                             </div>
                         </div>
+                        <div class="about-video">
+                            <div class="icon">
+                                <img src="assets/images/service/3.svg" alt="">
+                            </div>
+                            <h2>How To Take Care Of Your Favorite Pet. </h2>
+                            <p>Pamper your pet with professional grooming that ensures they look and feel their best.</p>
+                        </div>
                     </div>
-                    <div class="col-lg-6 col-12">
-                        <div class="testimonial-slider owl-carousel">
-                            <div class="item">
-                                <div class="icon">
-                                    <img src="assets/images/testimonial-icon.svg" alt="">
-                                </div>
-                                <h3>“PawCare made managing our pet vaccination records so much easier.”</h3>
-                                <p>“With just a quick scan, we can instantly view a pet’s vaccination history. It saves time during consultations and helps us provide better care.”</p>
-                                <div class="client-wrap">
-                                    <div class="image">
-                                        <img src="assets/images/client-1.jpg" alt="">
-                                    </div>
-                                    <div class="text">
-                                        <h4>Veterinary Clinic Staff</h4>
-                                        <span>Clinic Team</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="item">
-                                <div class="icon">
-                                    <img src="assets/images/testimonial-icon.svg" alt="">
-                                </div>
-                                <h3>“Simple, organized, and very helpful for our clinic.”</h3>
-                                <p>“The system keeps all pet records in one place. Tracking vaccinations and monitoring pet health has become more efficient and reliable.”</p>
-                                <div class="client-wrap">
-                                    <div class="image">
-                                        <img src="assets/images/client-2.jpg" alt="">
-                                    </div>
-                                    <div class="text">
-                                        <h4>Clinic Administrator</h4>
-                                        <span>Operations</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="item">
-                                <div class="icon">
-                                    <img src="assets/images/testimonial-icon.svg" alt="">
-                                </div>
-                                <h3>“I feel more confident knowing my pet’s records are secure.”</h3>
-                                <p>“PawCare protects our personal information while giving the vet fast access to important health details. It gives us peace of mind.”</p>
-                                <div class="client-wrap">
-                                    <div class="image">
-                                        <img src="assets/images/client-1.jpg" alt="">
-                                    </div>
-                                    <div class="text">
-                                        <h4>Pet Owner</h4>
-                                        <span>Client</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="item">
-                                <div class="icon">
-                                    <img src="assets/images/testimonial-icon.svg" alt="">
-                                </div>
-                                <h3>“A smart solution for modern veterinary care.”</h3>
-                                <p>“The digital monitoring and scanning feature really helps, especially during busy clinic hours. It’s practical and easy to use.”</p>
-                                <div class="client-wrap">
-                                    <div class="image">
-                                        <img src="assets/images/client-2.jpg" alt="">
-                                    </div>
-                                    <div class="text">
-                                        <h4>Veterinarian</h4>
-                                        <span>Doctor</span>
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="right">
+                        <span>About Us</span>
+                        <h2>At PawCare, every vet visit counts</h2>
+                        <p>PawCare, is a student-developed veterinary system designed to support pet vaccination management
+                            and health monitoring. It aims to help veterinary clinics and pet owners ensure that pets
+                            receive
+                            timely vaccinations and proper health tracking through and organized and digital approach.
+                        </p>
 
+                        <div class="about-btn">
+                            <a href="about.html" class="theme-btn-s2">Discover More</a>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="shape-1">
-                <img src="assets/images/paws-7.png" alt="">
-            </div>
-            <div class="shape-2">
-                <img src="assets/images/paws-6.png" alt="">
-            </div>
-        </section>
+                <div class="shape">
+                    <img src="assets/images/paws-6.png" alt="">
+                </div>
+                <div class="shape-2">
+                    <img src="assets/images/paws-7.png" alt="">
+                </div>
+            </section>
 
-        <!-- start of blog-section -->
-        <section class="blog-section section-padding">
-            <div class="container">
-                <div class="row justify-content-center">
-                    <div class="col-lg-6 col-12">
-                        <div class="section-title">
-                            <h3>Our Blog</h3>
-                            <h2>Prevention, Monitoring & Better Care</h2>
+            <!-- start of funfact-section -->
+            <section class="funfact-section">
+                <div class="section-top-image">
+                    <img src="assets/images/funfact/top-image.jpg" alt="">
+                </div>
+                <div class="container">
+                    <div class="row">
+                        <div class="col col-lg-4 col-md-6 col-12">
+                            <div class="item">
+                                <div class="icon">
+                                    <img src="assets/images/funfact/scanner.png" alt="">
+                                </div>
+                                <h3>Simple Scan</h3>
+                                <p class="hover-text">Instant access to pet records.</p>
+                            </div>
+                        </div>
+                        <div class="col col-lg-4 col-md-6 col-12">
+                            <div class="item">
+                                <div class="icon">
+                                    <img src="assets/images/funfact/3.svg" alt="">
+                                </div>
+                                <h3>Quick Access to the Vet</h3>
+                                <p class="hover-text">Faster response, better care.</p>
+                            </div>
+                        </div>
+                        <div class="col col-lg-4 col-md-6 col-12">
+                            <div class="item">
+                                <div class="icon">
+                                    <img src="assets/images/funfact/4.svg" alt="">
+                                </div>
+                                <h3>Personal Privacy</h3>
+                                <p class="hover-text">Secure and protected personal data.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="row blog-wrap">
-                    <div class="col col-lg-4 col-md-6 col-12">
-                        <div class="blog-card">
-                            <div class="image">
-                                <img src="assets/images/blog/vaccine.jpg" alt="">
-                            </div>
-                            <div class="content">
-                                <ul class="date">
-                                    <li>By PawCare </li>
-                                    <li>Jan 2026</li>
-                                </ul>
-                                <h2><a href="blog.html">Protection Starts with Prevention</a></h2>
-                                <p>Timely vaccinations help protect pets from preventable diseases.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col col-lg-4 col-md-6 col-12">
-                        <div class="blog-card">
-                            <div class="image">
-                                <img src="assets/images/blog/signs.jpg" alt="">
-                            </div>
-                            <div class="content">
-                                <ul class="date">
-                                    <li>By PawCare </li>
-                                    <li>Jan 2026</li>
-                                </ul>
-                                <h2><a href="blog.html">Monitoring Health, One Visit at a Time</a></h2>
-                                <p>Consistent tracking helps detect health issues early.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col col-lg-4 col-md-6 col-12">
-                        <div class="blog-card">
-                            <div class="image">
-                                <img src="assets/images/blog/scan.jpg" alt="">
-                            </div>
-                            <div class="content">
-                                <ul class="date">
-                                    <li>By PawCare </li>
-                                    <li>Jan 2026</li>
-                                </ul>
-                                <h2><a href="blog.html">Quick Access, Better Care</a></h2>
-                                <p>Simple scanning provides instant access to vital pet information.</p>
-                            </div>
-                        </div>
-                    </div>
+            </section>
 
+            <!-- start of testimonial-section -->
+            <section class="testimonial-section section-padding">
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-6 col-12">
+                            <div class="section-title">
+                                <h3>Testimonials</h3>
+                                <h2>What People Say About PawCare</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row align-items-center">
+                        <div class="col-lg-6 col-12">
+                            <div class="testimonial-image">
+                                <img src="assets/images/testimonial.png" alt="">
+                                <div class="shape">
+                                    <svg viewBox="0 0 932 866" fill="none">
+                                        <path
+                                            d="M809.592 217.287C836.009 315.879 817.135 440.087 766.796 546.355C716.445 652.649 634.907 740.4 536.578 766.747C339.293 819.609 136.508 702.532 83.6458 505.246C57.2312 406.666 77.0482 320.935 128.016 253.209C179.036 185.413 261.413 135.488 360.331 108.983C459.684 82.3613 559.022 60.3667 640.086 69.6483C680.555 74.2818 716.32 86.6978 745.237 110.108C774.137 133.505 796.397 168.045 809.592 217.287Z"
+                                            stroke="#FABE3D" stroke-width="5" />
+                                        <path
+                                            d="M772.667 241.253C819.838 417.297 705.161 683.804 529.117 730.975C353.074 778.146 172.122 673.674 124.952 497.63C77.7809 321.586 195.712 190.863 371.756 143.692C547.799 96.5215 725.496 65.2093 772.667 241.253Z"
+                                            fill="#FFF7E5" />
+                                        <mask id="mask0_1346_138" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="114"
+                                            y="106" width="670" height="637">
+                                            <path
+                                                d="M772.667 241.253C819.838 417.297 705.161 683.804 529.117 730.975C353.074 778.146 172.122 673.674 124.952 497.63C77.7809 321.586 195.712 190.863 371.756 143.692C547.799 96.5215 725.496 65.2093 772.667 241.253Z"
+                                                fill="#FFF7E5" />
+                                        </mask>
+                                        <g mask="url(#mask0_1346_138)">
+                                        </g>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-12">
+                            <div class="testimonial-slider owl-carousel">
+                                <div class="item">
+                                    <div class="icon">
+                                        <img src="assets/images/testimonial-icon.svg" alt="">
+                                    </div>
+                                    <h3>“PawCare made managing our pet vaccination records so much easier.”</h3>
+                                    <p>“With just a quick scan, we can instantly view a pet’s vaccination history. It saves
+                                        time during consultations and helps us provide better care.”</p>
+                                    <div class="client-wrap">
+                                        <div class="image">
+                                            <img src="assets/images/client-1.jpg" alt="">
+                                        </div>
+                                        <div class="text">
+                                            <h4>Veterinary Clinic Staff</h4>
+                                            <span>Clinic Team</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="item">
+                                    <div class="icon">
+                                        <img src="assets/images/testimonial-icon.svg" alt="">
+                                    </div>
+                                    <h3>“Simple, organized, and very helpful for our clinic.”</h3>
+                                    <p>“The system keeps all pet records in one place. Tracking vaccinations and monitoring
+                                        pet health has become more efficient and reliable.”</p>
+                                    <div class="client-wrap">
+                                        <div class="image">
+                                            <img src="assets/images/client-2.jpg" alt="">
+                                        </div>
+                                        <div class="text">
+                                            <h4>Clinic Administrator</h4>
+                                            <span>Operations</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="item">
+                                    <div class="icon">
+                                        <img src="assets/images/testimonial-icon.svg" alt="">
+                                    </div>
+                                    <h3>“I feel more confident knowing my pet’s records are secure.”</h3>
+                                    <p>“PawCare protects our personal information while giving the vet fast access to
+                                        important health details. It gives us peace of mind.”</p>
+                                    <div class="client-wrap">
+                                        <div class="image">
+                                            <img src="assets/images/client-1.jpg" alt="">
+                                        </div>
+                                        <div class="text">
+                                            <h4>Pet Owner</h4>
+                                            <span>Client</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="item">
+                                    <div class="icon">
+                                        <img src="assets/images/testimonial-icon.svg" alt="">
+                                    </div>
+                                    <h3>“A smart solution for modern veterinary care.”</h3>
+                                    <p>“The digital monitoring and scanning feature really helps, especially during busy
+                                        clinic hours. It’s practical and easy to use.”</p>
+                                    <div class="client-wrap">
+                                        <div class="image">
+                                            <img src="assets/images/client-2.jpg" alt="">
+                                        </div>
+                                        <div class="text">
+                                            <h4>Veterinarian</h4>
+                                            <span>Doctor</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </section>
+                <div class="shape-1">
+                    <img src="assets/images/paws-7.png" alt="">
+                </div>
+                <div class="shape-2">
+                    <img src="assets/images/paws-6.png" alt="">
+                </div>
+            </section>
+
+            <!-- start of blog-section -->
+            <section class="blog-section section-padding">
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-6 col-12">
+                            <div class="section-title">
+                                <h3>Our Blog</h3>
+                                <h2>Prevention, Monitoring & Better Care</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row blog-wrap">
+                        <div class="col col-lg-4 col-md-6 col-12">
+                            <div class="blog-card">
+                                <div class="image">
+                                    <img src="assets/images/blog/vaccine.jpg" alt="">
+                                </div>
+                                <div class="content">
+                                    <ul class="date">
+                                        <li>By PawCare </li>
+                                        <li>Jan 2026</li>
+                                    </ul>
+                                    <h2><a href="blog.html">Protection Starts with Prevention</a></h2>
+                                    <p>Timely vaccinations help protect pets from preventable diseases.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col col-lg-4 col-md-6 col-12">
+                            <div class="blog-card">
+                                <div class="image">
+                                    <img src="assets/images/blog/signs.jpg" alt="">
+                                </div>
+                                <div class="content">
+                                    <ul class="date">
+                                        <li>By PawCare </li>
+                                        <li>Jan 2026</li>
+                                    </ul>
+                                    <h2><a href="blog.html">Monitoring Health, One Visit at a Time</a></h2>
+                                    <p>Consistent tracking helps detect health issues early.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col col-lg-4 col-md-6 col-12">
+                            <div class="blog-card">
+                                <div class="image">
+                                    <img src="assets/images/blog/scan.jpg" alt="">
+                                </div>
+                                <div class="content">
+                                    <ul class="date">
+                                        <li>By PawCare </li>
+                                        <li>Jan 2026</li>
+                                    </ul>
+                                    <h2><a href="blog.html">Quick Access, Better Care</a></h2>
+                                    <p>Simple scanning provides instant access to vital pet information.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        @else
+            @yield('content')
+        @endif
 
         <!-- start of wpo-site-footer-section -->
         <footer class="wpo-site-footer">
@@ -520,10 +534,10 @@
                                     <h3>Quick Link</h3>
                                 </div>
                                 <ul>
-                                    <li><a href="about.html">About Us</a></li>
-                                    <li><a href="service.html">Services</a></li>
-                                    <li><a href="blog.html">Blog</a></li>
-                                    <li><a href="contact.html">Contact Us</a></li>
+                                    <li><a href="{{ route('about') }}">About Us</a></li>
+                                    <li><a href="{{ route('service') }}">Services</a></li>
+                                    <li><a href="{{ route('blog') }}">Blog</a></li>
+                                    <li><a href="{{ route('contact') }}">Contact Us</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -537,10 +551,11 @@
                         </div>
                         <div class="col col-lg-6 col-12">
                             <ul class="right">
-                                <li><a href="privace.html"><span class="rolling-text">Privace & Policy</span> </a></li>
-                                <li><a href="terms.html"><span class="rolling-text">Terms</span></a></li>
-                                <li><a href="about.html"><span class="rolling-text">About us</span></a></li>
-                                <li><a href="faq.html"><span class="rolling-text">FAQ</span></a></li>
+                                <li><a href="{{ route('privacy') }}"><span class="rolling-text">Privacy & Policy</span>
+                                    </a></li>
+                                <li><a href="{{ route('terms') }}"><span class="rolling-text">Terms</span></a></li>
+                                <li><a href="{{ route('about') }}"><span class="rolling-text">About us</span></a></li>
+                                <li><a href="{{ route('faq') }}"><span class="rolling-text">FAQ</span></a></li>
                             </ul>
                         </div>
                     </div>

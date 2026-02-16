@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Pet;
 use App\Models\Vaccine;
+use App\Models\PetVaccination;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
@@ -62,9 +63,17 @@ class AdminController extends Controller
         return back()->with('success', 'Pet enrolled successfully! ID: ' . $unique_id);
     }
 
-    public function petRecords()
+    public function petRecords(Request $request)
     {
-        $pets = Pet::with('user')->latest()->paginate(10);
+        $query = Pet::with(['user', 'vaccinations']);
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%")
+                ->orWhere('unique_id', $search);
+        }
+
+        $pets = $query->latest()->paginate(10);
         return view('admin.pet-records', compact('pets'));
     }
 
@@ -109,6 +118,77 @@ class AdminController extends Controller
         }
 
         $vaccines = $query->paginate(10);
+
         return view('admin.vaccines', compact('vaccines'));
+    }
+
+    public function vaccinationStatus(Request $request)
+    {
+        $query = Pet::with(['user', 'vaccinations']);
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%")
+                ->orWhere('unique_id', $search);
+        }
+
+        $pets = $query->latest()->paginate(10);
+
+        return view('admin.vaccination-status', compact('pets'));
+    }
+
+    public function updateVaccine(Request $request, Vaccine $vaccine)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'stock' => 'required|integer|min:0',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        $vaccine->update($request->only(['name', 'stock', 'price']));
+
+        return back()->with('success', 'Vaccine inventory updated successfully.');
+    }
+
+    public function recordVaccination(Request $request, Pet $pet)
+    {
+        $request->validate([
+            'vaccine_name' => 'required|string|max:255',
+            'administered_at' => 'required|date',
+            'next_due_at' => 'nullable|date',
+        ]);
+
+        // Try to find matching vaccine in inventory to get price and update stock
+        $vaccine = Vaccine::where('name', 'like', $request->vaccine_name)->first();
+        $price = $vaccine ? $vaccine->price : null;
+
+        if ($vaccine && $vaccine->stock > 0) {
+            $vaccine->decrement('stock');
+        }
+
+        PetVaccination::create([
+            'pet_id' => $pet->id,
+            'vaccine_name' => $request->vaccine_name,
+            'administered_at' => $request->administered_at,
+            'next_due_at' => $request->next_due_at,
+            'administered_by' => Auth::id(),
+            'price' => $price,
+        ]);
+
+        return back()->with('success', 'Vaccination recorded successfully for ' . $pet->name);
+    }
+
+    public function updatePet(Request $request, Pet $pet)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'species' => 'required|string|max:255',
+            'breed' => 'nullable|string|max:255',
+            'birthdate' => 'nullable|date',
+        ]);
+
+        $pet->update($request->only(['name', 'species', 'breed', 'birthdate']));
+
+        return back()->with('success', 'Pet information updated successfully.');
     }
 }

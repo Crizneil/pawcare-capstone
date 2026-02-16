@@ -111,9 +111,13 @@
                         class="nav-link {{ request()->routeIs('admin.employees') ? 'active' : '' }}">
                         <i data-lucide="users"></i> Staff
                     </a>
+                    <a href="{{ route('admin.vaccination-status') }}"
+                        class="nav-link {{ request()->routeIs('admin.vaccination-status') ? 'active' : '' }}">
+                        <i data-lucide="syringe"></i> Vaccination Status
+                    </a>
                     <a href="{{ route('admin.vaccinations') }}"
                         class="nav-link {{ request()->routeIs('admin.vaccinations') ? 'active' : '' }}">
-                        <i data-lucide="syringe"></i> Vaccines
+                        <i data-lucide="boxes"></i> Vaccine Inventory
                     </a>
                 @elseif(Auth::user()->role === 'vet')
                     <a href="{{ route('vet.dashboard') }}"
@@ -124,9 +128,13 @@
                         class="nav-link {{ request()->routeIs('vet.pet-records') ? 'active' : '' }}">
                         <i data-lucide="file-text"></i> Pet Records
                     </a>
+                    <a href="{{ route('vet.vaccination-status') }}"
+                        class="nav-link {{ request()->routeIs('vet.vaccination-status') ? 'active' : '' }}">
+                        <i data-lucide="syringe"></i> Vaccination Status
+                    </a>
                     <a href="{{ route('vet.vaccinations') }}"
                         class="nav-link {{ request()->routeIs('vet.vaccinations') ? 'active' : '' }}">
-                        <i data-lucide="syringe"></i> Vaccines
+                        <i data-lucide="boxes"></i> Vaccine Inventory
                     </a>
                 @elseif(Auth::user()->role === 'owner')
                     <a href="{{ route('pet-owner.dashboard') }}"
@@ -160,11 +168,11 @@
         </aside>
 
         <!-- Main Content -->
-        <div class="flex-grow-1" style="margin-left: 280px; width: calc(100% - 280px);">
+        <div class="flex-grow-1 main-content-container">
             <header class="bg-white shadow-sm p-3 d-flex justify-content-between align-items-center d-md-none">
                 <img src="{{ asset('assets/images/newlogo.png') }}" style="height: 40px;">
                 <button class="btn btn-light" onclick="toggleSidebar()">
-                    <i class="fa fa-bars"></i>
+                    <i data-lucide="menu"></i>
                 </button>
             </header>
 
@@ -173,6 +181,22 @@
             </div>
         </div>
     </div>
+
+    <!-- Additional Styles for Layout -->
+    <style>
+        .main-content-container {
+            margin-left: 280px;
+            width: calc(100% - 280px);
+            transition: all 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            .main-content-container {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+        }
+    </style>
 
     <!-- Scripts -->
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>

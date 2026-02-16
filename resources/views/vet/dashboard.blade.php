@@ -47,14 +47,22 @@
                         </button>
 
                         <div class="mt-4 pt-4 border-top">
-                            <p class="small text-muted font-weight-bold uppercase mb-2">OR ENTER ID MANUALLY</p>
-                            <form action="{{ route('vet.search-pet') }}" method="POST" class="d-flex">
+                            <p class="small text-muted font-weight-bold uppercase mb-2">OR ENTER ID MANUALLY / USE HARDWARE
+                                SCANNER</p>
+                            <form action="{{ route('vet.search-pet') }}" method="POST" id="manualSearchForm">
                                 @csrf
-                                <input type="text" name="search" id="petSearchInput"
-                                    class="form-control form-control-lg rounded-pill bg-light border-0 mr-2"
-                                    placeholder="PC-2026-XXXX">
-                                <button class="btn btn-primary rounded-pill px-4" type="submit"><i
-                                        data-lucide="search"></i></button>
+                                <div class="input-group">
+                                    <input type="text" name="search" id="petSearchInput"
+                                        class="form-control form-control-lg rounded-left-pill bg-light border-0"
+                                        placeholder="PC-2026-XXXX" autocomplete="off" autofocus>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary rounded-right-pill px-4" type="submit">
+                                            <i data-lucide="search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Tip: Focus the box above and use your hardware
+                                    scanner.</small>
                             </form>
                         </div>
                     </div>
@@ -68,10 +76,18 @@
                     <div class="d-grid gap-3">
                         <a href="{{ route('vet.vaccinations') }}"
                             class="btn btn-outline-primary btn-lg btn-block text-left p-3 d-flex align-items-center rounded-lg">
-                            <div class="bg-primary-light p-2 rounded mr-3 text-primary"><i data-lucide="syringe"></i></div>
+                            <div class="bg-primary-light p-2 rounded mr-3 text-primary"><i data-lucide="boxes"></i></div>
                             <div>
-                                <span class="d-block font-weight-bold">Check Vaccine Stock</span>
-                                <small class="text-muted">View available doses</small>
+                                <span class="d-block font-weight-bold">Check Vaccine Stocks and Prices</span>
+                                <small class="text-muted">Manage inventory levels</small>
+                            </div>
+                        </a>
+                        <a href="{{ route('vet.vaccination-status') }}"
+                            class="btn btn-outline-success btn-lg btn-block text-left p-3 d-flex align-items-center rounded-lg">
+                            <div class="bg-success-light p-2 rounded mr-3 text-success"><i data-lucide="syringe"></i></div>
+                            <div>
+                                <span class="d-block font-weight-bold">Vaccination Status</span>
+                                <small class="text-muted">Track pet vax records</small>
                             </div>
                         </a>
                         <a href="{{ route('vet.pet-records') }}"
@@ -120,13 +136,29 @@
 
         function onScanSuccess(decodedText, decodedResult) {
             console.log(`Code matched = ${decodedText}`, decodedResult);
-            document.getElementById('petSearchInput').value = decodedText;
+
+            // Extract ID if it's a URL
+            let petId = decodedText;
+            if (decodedText.includes('/p/')) {
+                petId = decodedText.split('/p/').pop();
+            }
+
+            document.getElementById('petSearchInput').value = petId;
 
             html5QrCode.stop().then((ignore) => {
                 document.getElementById('reader').style.display = 'none';
-                document.querySelector('form[action="{{ route('vet.search-pet') }}"]').submit();
+                document.getElementById('manualSearchForm').submit();
             });
         }
+
+        // Handle hardware scanner input which might be a full URL
+        document.getElementById('petSearchInput').addEventListener('input', function (e) {
+            if (this.value.includes('/p/')) {
+                let petId = this.value.split('/p/').pop();
+                this.value = petId;
+                document.getElementById('manualSearchForm').submit();
+            }
+        });
 
         function onScanFailure(error) {
         }
