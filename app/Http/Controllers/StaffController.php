@@ -19,10 +19,10 @@ class StaffController extends Controller
     public function dashboard()
     {
         return view('staff.dashboard', [
-        // Fix: Only show approved appointments for today
-        'appointmentsToday' => Appointment::whereDate('appointment_date', today())
-            ->where('status', 'approved')
-            ->get(),
+            // Fix: Only show approved appointments for today
+            'appointmentsToday' => Appointment::whereDate('appointment_date', today())
+                ->where('status', 'approved')
+                ->get(),
             'dueForVaccination' => Pet::where('status', 'needs_booster')->limit(5)->get(),
             'lowStock' => VaccineInventory::whereColumn('stock', '<=', 'low_stock_threshold')->get(),
             'recentVaccinations' => Vaccination::with('pet')->latest()->limit(5)->get()
@@ -34,15 +34,15 @@ class StaffController extends Controller
         $view = $request->get('view', 'today');
         $query = Appointment::with('user');
 
-       $appointments = match($view) {
+        $appointments = match ($view) {
             // Fix: Only show approved for upcoming and today
             'upcoming' => $query->where('appointment_date', '>', today())
-                                ->where('status', 'approved'),
+                ->where('status', 'approved'),
 
             'completed' => $query->whereIn('status', ['Done', 'completed']),
 
             default => $query->whereDate('appointment_date', today())
-                     ->whereIn('status', ['pending', 'approved']),
+                ->whereIn('status', ['pending', 'approved']),
         };
 
         return view('staff.appointments', ['appointments' => $appointments->paginate(10), 'view' => $view]);
@@ -81,26 +81,26 @@ class StaffController extends Controller
 
         // 2. Create the Pet Record
         $pet = Pet::create([
-            'user_id'    => $userId, // Will be NULL if no account created
-            'pet_id'     => 'WALK-' . strtoupper(substr(uniqid(), -5)),
-            'name'       => $request->pet_name,
-            'species'    => $request->species,
-            'gender'     => 'Unknown',
-            'birthday'   => now(),
-            'breed'      => 'Mixed/Other',
-            'owner'      => $ownerName, // Saves "Guest" or the User's Name
-            'status'     => 'ACTIVE',
+            'user_id' => $userId, // Will be NULL if no account created
+            'pet_id' => 'WALK-' . strtoupper(substr(uniqid(), -5)),
+            'name' => $request->pet_name,
+            'species' => $request->species,
+            'gender' => 'Unknown',
+            'birthday' => now(),
+            'breed' => 'Mixed/Other',
+            'owner' => $ownerName, // Saves "Guest" or the User's Name
+            'status' => 'ACTIVE',
         ]);
 
         // 3. Create the Appointment
         Appointment::create([
-            'user_id'          => $userId,
-            'pet_name'         => $pet->name,
-            'species'          => $request->species,
+            'user_id' => $userId,
+            'pet_name' => $pet->name,
+            'species' => $request->species,
             'appointment_date' => now()->toDateString(),
             'appointment_time' => now()->toTimeString(),
-            'service_type'     => $request->service_type,
-            'status'           => 'pending', // Default status for new walk-ins
+            'service_type' => $request->service_type,
+            'status' => 'pending', // Default status for new walk-ins
         ]);
 
         return back()->with('success', 'Walk-in registered successfully!');
@@ -109,9 +109,10 @@ class StaffController extends Controller
     public function petRecords(Request $request)
     {
         $pets = Pet::with('user')
-            ->when($request->search, function($q) use ($request) {
+            ->when($request->search, function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
-                ->orWhere('owner', 'like', "%{$request->search}%"); // This lets you search for "Guest"
+                    ->orWhere('pet_id', 'like', "%{$request->search}%")
+                    ->orWhere('owner', 'like', "%{$request->search}%");
             })
             ->latest()
             ->paginate(10);
@@ -124,11 +125,12 @@ class StaffController extends Controller
         // Use with() to get relationships without excluding pets with null users
         $query = Pet::with(['user', 'latestVaccination']);
 
-        // Filter by search (Pet name or Owner name)
+        // Filter by search (Pet name, ID, or Owner name)
         if ($request->search) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
-                ->orWhere('owner', 'like', "%{$request->search}%");
+                    ->orWhere('pet_id', 'like', "%{$request->search}%")
+                    ->orWhere('owner', 'like', "%{$request->search}%");
             });
         }
 
@@ -178,8 +180,8 @@ class StaffController extends Controller
     }
     public function vaccineInventory()
     {
-    $vaccines = VaccineInventory::latest()->get();
-    return view('staff.vaccine-inventory', compact('vaccines'));
+        $vaccines = VaccineInventory::latest()->get();
+        return view('staff.vaccine-inventory', compact('vaccines'));
     }
     public function useVaccineInventory(Request $request, $id)
     {

@@ -248,9 +248,29 @@ class AdminController extends Controller
 
     // --- EXISTING METHODS ---
 
-    public function petRecords()
+    public function petRecords(Request $request)
     {
-        $pets = Pet::with('user')->latest()->paginate(10);
+        $query = Pet::with('user');
+
+        // Filter by specific Pet ID (Scanner)
+        if ($request->filled('pet_id')) {
+            $query->where('pet_id', $request->pet_id);
+        }
+
+        // General Search (Name, Breed, Owner)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('pet_id', 'like', "%{$search}%")
+                    ->orWhere('breed', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($u) use ($search) {
+                        $u->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $pets = $query->latest()->paginate(10);
         return view('admin.pet-records', compact('pets'));
     }
 
@@ -262,7 +282,6 @@ class AdminController extends Controller
 
         $search = $request->search;
         $pet = Pet::where('pet_id', $search)
-            ->orWhere('unique_id', $search)
             ->orWhere('name', 'like', "%{$search}%")
             ->first();
 
@@ -270,10 +289,8 @@ class AdminController extends Controller
             return back()->with('error', 'Pet not found. Please check the ID or QR scan again.');
         }
 
-        // Redirect to the Pet Records page but maybe with a filter or just highlight?
-        // Actually, the UI suggests it redirects to pet medical records.
-        // Let's redirect to pet records with a search parameter or find a way to show the modal.
-        return redirect()->route('admin.pet-records', ['search' => $pet->unique_id]);
+        // Redirect to Pet Records with the specific pet_id to filter the view
+        return redirect()->route('admin.pet-records', ['pet_id' => $pet->pet_id]);
     }
     // --- ADD THESE METHODS FOR PET MANAGEMENT ---
 
@@ -358,7 +375,7 @@ class AdminController extends Controller
             'breed' => $request->breed,
             'birthdate' => now(),
             'registry_date' => now(),
-            'unique_id' => $unique_id,
+            'pet_id' => $unique_id,
         ]);
 
         // Send SMS Notification
