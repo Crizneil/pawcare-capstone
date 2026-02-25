@@ -1,0 +1,147 @@
+@extends('layouts.admin')
+
+@section('page_title', 'Vaccine Inventory Dashboard')
+
+@section('content')
+<div class="container-fluid p-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="fw-bold mb-1">Vaccine Inventory</h2>
+            <p class="text-muted small mb-0">Manage vaccine stock and expiry tracking.</p>
+        </div>
+
+        <button class="btn btn-orange rounded-pill px-4 py-2 shadow-sm fw-bold"
+                data-bs-toggle="modal"
+                data-bs-target="#addVaccineModal">
+            <i class="bi bi-plus-lg me-1"></i> Add Vaccine
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 mb-4 p-3">
+        <form action="{{ url()->current() }}" method="GET" class="row g-2 align-items-center">
+            <div class="col-md-10">
+                <div class="input-group">
+                    <span class="input-group-text border-0 bg-light rounded-start-pill ps-4">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" value="{{ request('search') }}"
+                        class="form-control border-0 bg-light rounded-end-pill py-2"
+                        placeholder="Search by vaccine name or batch number...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-orange w-100 rounded-pill py-2 fw-bold shadow-sm">Search</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Card -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="text-uppercase small fw-bold text-muted">
+                            <th class="ps-4">Vaccine</th>
+                            <th>Batch No.</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Expiry Date</th>
+                            <th>Last Updated</th> {{-- This was missing --}}
+                            <th class="text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($vaccines as $vaccine)
+                        @php
+                            $isExpired = $vaccine->expiry_date && now()->gt($vaccine->expiry_date);
+                            $isOutOfStock = $vaccine->stock <= 0;
+                            $isLowStock = !$isOutOfStock && ($vaccine->stock <= $vaccine->low_stock_threshold);
+                        @endphp
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold">{{ $vaccine->name }}</div>
+                                <small class="text-muted d-block text-truncate" style="max-width: 150px;">
+                                    {{ $vaccine->description }}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="text-primary fw-medium">{{ $vaccine->batch_no ?? 'N/A' }}</span>
+                            </td>
+                            <td>
+                                <span class="badge {{ $isOutOfStock ? 'bg-danger' : ($isLowStock ? 'bg-warning text-dark' : 'bg-success') }} rounded-pill px-3">
+                                    {{ $vaccine->stock }}
+                                </span>
+                            </td>
+                            <td>
+                                @if ($isExpired)
+                                    <span class="badge bg-danger-subtle text-danger px-3">
+                                        <i class="bi bi-exclamation-octagon me-1"></i> Expired
+                                    </span>
+                                @elseif($isOutOfStock)
+                                    <span class="badge bg-danger-subtle text-danger border border-danger rounded-pill px-3">
+                                        Out of Stock
+                                    </span>
+                                @elseif($isLowStock)
+                                    <span class="badge bg-warning-subtle text-dark fw-bold border border-warning rounded-pill px-3">
+                                        Low Stock
+                                    </span>
+                                @else
+                                    <span class="badge bg-success-subtle text-success fw-bold border border-success rounded-pill px-3">Normal</span>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="fw-bold">
+                                    {{ $vaccine->expiry_date ? \Carbon\Carbon::parse($vaccine->expiry_date)->format('M d, Y') : '--' }}
+                                </span>
+                            </td>
+                            {{-- Added the missing Last Updated cell --}}
+                            <td class="text-bold small">
+                                {{ $vaccine->updated_at->format('M d, Y') }}
+                            </td>
+                            <td class="text-end pe-4 action-cell">
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-light border rounded-pill px-3 fw-medium shadow-sm"
+                                            type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                                        Manage <i class="bi bi-three-dots-vertical ms-1"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2">
+                                        <li>
+                                            <a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#editVaccineModal{{ $vaccine->id }}">
+                                                <i data-lucide="edit-3" class="me-2 text-primary" style="width:14px;"></i> Edit Stock
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item py-2 text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteVaccineModal{{ $vaccine->id }}">
+                                                <i data-lucide="trash-2" class="me-2" style="width:14px;"></i> Delete Vaccine
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="7" class="text-center py-5">No inventory found.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        {{ $vaccines->appends(request()->query())->links() }}
+    </div>
+</div>
+@foreach($vaccines as $vaccine)
+    @include('partials._edit_vaccine_modal')
+    @include('partials._delete_vaccine_modal')
+@endforeach
+
+    @include('partials._add_vaccine_modal')
+@endsection

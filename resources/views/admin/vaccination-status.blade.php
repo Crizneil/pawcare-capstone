@@ -1,0 +1,163 @@
+@extends('layouts.admin')
+
+@section('page_title', 'Vaccination Status Dashboard')
+
+@section('content')
+<div class="container-fluid p-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Vaccination Status</h2>
+            <p class="text-muted small mb-0">Track and update vaccination records for all pet patients.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <form action="{{ url()->current() }}" method="GET" class="d-flex">
+                <input type="text"
+                       name="search"
+                       value="{{ request('search') }}"
+                       class="form-control rounded-pill border-0 bg-light px-4 me-2"
+                       placeholder="Search by Pet ID or Name...">
+                <button class="btn btn-orange rounded-pill px-4">Search</button>
+            </form>
+
+            <button class="btn btn-outline-secondary rounded-pill px-4">
+                Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Pet</th>
+                            <th>Owner</th>
+                            <th>Status</th>
+                            <th>Vaccine Type</th>
+                            <th>Last Vaccination</th>
+                            <th>Next Due Date</th>
+                            <th class="text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($pets as $pet)
+                        @php
+                            $vaccination = $pet->latestVaccination;
+                        @endphp
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ $pet->image_url ?? 'https://ui-avatars.com/api/?name=' . $pet->name }}"
+                                         class="rounded-circle me-3"
+                                         style="width:40px;height:40px;object-fit:cover;">
+                                    <div>
+                                        <div class="fw-bold small">{{ $pet->name }}</div>
+                                        <small class="text-muted">{{ $pet->unique_id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>
+                                @if($pet->user)
+                                    {{-- For registered users --}}
+                                    <div class="fw-bold small">{{ $pet->user->name }}</div>
+                                @else
+                                    {{-- For walk-ins --}}
+                                    <div class="fw-bold small">{{ $pet->owner ?? 'Guest' }}</div>
+                                    <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.65rem;">Walk-in</span>
+                                @endif
+                            </td>
+
+                            <td>
+                                @php
+                                    // This calls the "getCalculatedStatusAttribute" from the Model
+                                    $status = $pet->calculated_status;
+
+                                    $badgeClass = match($status) {
+                                        'fully_vaccinated'     => 'bg-success',
+                                        'due_soon'             => 'bg-warning text-dark',
+                                        'overdue'              => 'bg-dark',
+                                        'unvaccinated'         => 'bg-danger',
+                                        default                => 'bg-secondary',
+                                    };
+
+                                    $statusLabel = ucwords(str_replace('_', ' ', $status));
+                                @endphp
+
+                                <span class="badge {{ $badgeClass }} rounded-pill px-3">
+                                    {{ $statusLabel }}
+                                </span>
+                            </td>
+                            <td>
+                                @if($vaccination)
+                                    <span class="fw-bold">
+                                        {{ $vaccination->vaccine_name }}
+                                    </span>
+                                @else
+                                    <span class="text-muted small">No record</span>
+                                @endif
+                            </td>
+
+                            <td class="fw-bold small">
+                                @if($vaccination)
+                                    {{ \Carbon\Carbon::parse($vaccination->date_administered)->format('M d, Y') }}
+                                @else
+                                    --
+                                @endif
+                            </td>
+
+                            <td class="fw-bold small">
+                                @if($vaccination && $vaccination->next_due_date)
+                                    {{ \Carbon\Carbon::parse($vaccination->next_due_date)->format('M d, Y') }}
+                                @else
+                                    --
+                                @endif
+                            </td>
+
+                            <td class="text-end pe-4 action-cell">
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-light border rounded-pill px-3 fw-medium shadow-sm"
+                                            type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                                        Manage <i class="bi bi-three-dots-vertical ms-1"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2">
+                                        <li>
+                                            <a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#viewVaxHistory{{ $pet->id }}">
+                                                <i class="bi bi-eye me-2 text-info"></i> View
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#updateVax{{ $pet->id }}">
+                                                <i class="bi bi-pencil me-2 text-warning"></i> Update
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                No pets found.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        {{ $pets->appends(request()->query())->links() }}
+    </div>
+</div>
+@foreach($pets as $pet)
+    @include('partials._vaccination_modal')
+@endforeach
+@endsection
