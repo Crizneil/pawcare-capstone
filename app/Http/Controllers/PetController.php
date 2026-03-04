@@ -1,0 +1,423 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Pet;
+use App\Models\Appointment;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
+use App\Models\ActivityLog;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\AppointmentConfirmedEmail;
+
+class PetController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Pet::with('user');
+
+        // This must match the parameter name sent by adminSearch redirect
+        $searchId = $request->query('pet_id') ?? $request->query('search');
+
+        if ($searchId) {
+            $query->where('pet_id', $searchId);
+        }
+
+        // General search (name, breed, owner) - only if no specific ID search is active
+        if ($request->has('general_search')) {
+            $search = $request->general_search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('breed', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($u) use ($search) {
+                        $u->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $pets = $query->latest()->get();
+        return view('admin.pet-records', compact('pets'));
+    }
+
+    /**
+     * PET OWNER VIEW: Only sees pets belonging to the logged-in user
+     */
+    public function ownerDashboard()
+    {
+        // Get only pets of logged in owner
+        $pets = Pet::where('user_id', Auth::id())->latest()->get();
+
+        // Pet Count
+        $petCount = $pets->count();
+
+        // Upcoming Appointment (sample for now)
+        $nextAppointment = 'Feb 25, 2026';
+        $appointmentStatus = 'Confirmed';
+
+        // Upcoming Vaccine Due
+        $nextVaccine = optional(
+            $pets->sortBy('next_date')->first()
+        )->next_date;
+
+        // Reminder Alert Logic
+        $vaccineReminder = null;
+
+        if ($nextVaccine) {
+            $daysRemaining = now()->diffInDays($nextVaccine, false);
+
+            if ($daysRemaining <= 7 && $daysRemaining >= 0) {
+                $vaccineReminder = 'Rabies Vaccine due in ' . $daysRemaining . ' day(s)';
+            }
+        }
+
+        // Clinic Announcement
+        $announcement = 'Free Anti-Rabies Vaccination this Saturday!';
+
+        return view('pet-owner.dashboard', compact(
+            'pets',
+            'petCount',
+            'nextAppointment',
+            'appointmentStatus',
+            'nextVaccine',
+            'vaccineReminder',
+            'announcement'
+        ));
+    }
+
+    public function appointments()
+    {
+        // Fetch the owner's appointments
+        $appointments = Appointment::where('user_id', auth()->id())
+            ->where('status', '!=', 'cancelled')
+            ->latest()
+            ->paginate(10);
+
+        return view('pet-owner.appointments', compact('appointments'));
+    }
+    public function cancelAppointment($id)
+    {
+        // Find appointment and ensure it belongs to the logged-in user
+        $appointment = Appointment::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        // Check if it's already completed or already cancelled
+        if ($appointment->status === 'completed' || $appointment->status === 'Done') {
+            return back()->with('error', 'Cannot cancel a completed appointment.');
+        }
+
+        $appointment->update(['status' => 'cancelled']);
+
+        return back()->with('success', 'Appointment cancelled successfully.');
+    }
+
+    /**
+     * API: Get available slots per day (for user calendar)
+     */
+    public function getAvailableSlots(Request $request)
+    {
+        $start = Carbon::parse($request->start)->startOfDay();
+        $end = Carbon::parse($request->end)->endOfDay();
+
+        $ownerId = auth()->id();
+
+        // Get all booked appointments (that are not cancelled/rejected/done/completed)
+        // Passed/Done appointments shouldn't consume future visual clinic capacity unless they block a specific slot
+        $appointments = Appointment::whereBetween('appointment_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->whereNotIn('status', ['cancelled', 'rejected', 'done', 'completed'])
+            ->get();
+
+        $bookedSlots = [];
+        $ownerBookedDates = [];
+
+        foreach ($appointments as $appt) {
+            $date = $appt->appointment_date;
+            $time = date('H:i', strtotime($appt->appointment_time));
+
+            if (!isset($bookedSlots[$date])) {
+                $bookedSlots[$date] = [];
+            }
+            $bookedSlots[$date][] = $time;
+
+            // If the logged-in owner already has any appointment on this day,
+            // we capture the specific status and ID to tell the frontend whether to show "Visit Done" or "You Already Booked".
+            if ($appt->user_id === $ownerId) {
+                $ownerBookedDates[$date] = [
+                    'id' => $appt->id,
+                    'status' => strtolower($appt->status)
+                ];
+            }
+        }
+
+        return response()->json([
+            'booked_slots' => $bookedSlots,
+            'max_capacity_per_day' => 10, // Max appointments per day (global capacity)
+            'owner_booked_dates' => $ownerBookedDates,
+        ]);
+    }
+
+    public function book(Request $request)
+    {
+        $request->validate([
+            'pet_id' => 'required|exists:pets,id',
+            'appointment_date' => 'required|date|after_or_equal:today',
+            'appointment_time' => 'required|string',
+            'service_type' => 'required|string',
+            'address' => 'required|string'
+        ]);
+
+        // Prevent bookings on clinic closed days (Saturday & Sunday)
+        $appointmentDate = Carbon::parse($request->appointment_date);
+        if ($appointmentDate->isWeekend()) {
+            return back()
+                ->withErrors(['appointment_date' => 'The clinic is closed on Saturdays and Sundays. Please choose a weekday.'])
+                ->withInput();
+        }
+
+        $pet = Pet::where('id', $request->pet_id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        // Business rule: only VERIFIED / ACTIVE pets can be booked
+        if (!in_array($pet->status, ['ACTIVE', 'Verified'], true)) {
+            return back()
+                ->withErrors(['pet_id' => 'Only verified pets with active status can be booked for appointments.'])
+                ->withInput();
+        }
+
+        // Double Booking Prevention
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($request, $pet) {
+            // Convert time format for database strictly before checking (e.g., "08:00" to "08:00:00")
+            $formattedTime = date('H:i:s', strtotime($request->appointment_time));
+
+            $existing = Appointment::where('appointment_date', $request->appointment_date)
+                ->where('appointment_time', $formattedTime)
+                ->whereNotIn('status', ['cancelled', 'rejected'])
+                ->lockForUpdate()
+                ->exists();
+
+            if ($existing) {
+                return back()->withErrors(['appointment_time' => 'Sorry, this time slot has just been booked by someone else. Please choose another time.'])->withInput();
+            }
+
+            $appointment = Appointment::create([
+                'user_id' => auth()->id(),
+                'pet_id' => $pet->id,
+                'pet_name' => $pet->name,
+                'species' => $pet->species,
+                'appointment_date' => $request->appointment_date,
+                'appointment_time' => $formattedTime,
+                'service_type' => $request->service_type,
+                'status' => 'pending',
+                'address' => $request->address
+            ]);
+
+            // Send the appointment confirmation email to the owner
+            try {
+                Mail::to(auth()->user()->email)->send(new AppointmentConfirmedEmail($appointment));
+            } catch (\Exception $e) {
+                // Log the error or handle it silently so it doesn't interrupt the booking process
+                \Log::error('Failed to send appointment confirmation email: ' . $e->getMessage());
+            }
+
+            return redirect()->route('pet-owner.appointments')->with('success', 'Appointment requested!');
+        });
+    }
+    public function petOwners()
+    {
+        return view('admin.pet-owners');
+    }
+
+    public function vaccinations()
+    {
+        return view('admin.vaccinations');
+    }
+
+    public function settings()
+    {
+        return view('admin.settings');
+    }
+
+    public function store(Request $request)
+    {
+        // 1. Validation
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // 2MB Max
+            'species' => 'required',
+            'gender' => 'required',
+            'breed' => 'required',
+            'other_species' => 'required_if:breed,Other',
+            'birthday' => 'required|date',
+        ]);
+
+        // 2. Handle the "Other" Breed logic
+        $finalBreed = ($request->breed === 'Other')
+            ? $request->other_species
+            : $request->breed;
+
+        // 3. Handle File Upload
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
+            // Move file to public/uploads/pets
+            $path = $request->file('image')->store('profiles', 'public');
+            $imagePath = '/storage/' . $path;
+        }
+
+        // 4. Create the pet record
+        Pet::create([
+            'pet_id' => 'PC-2026-' . rand(1000, 9999),
+            'user_id' => Auth::id(),
+            'name' => $request->name,
+            'gender' => $request->gender,
+            'species' => $request->species,
+            'birthday' => $request->birthday,
+            'breed' => $finalBreed,
+            'owner' => Auth::user()->name,
+            'image_url' => $imagePath, // Save the path here
+            'status' => 'ACTIVE',
+            'last_date' => now(),
+            'vaccine_type' => 'None',
+        ]);
+
+        return redirect()->route('pet-owner.pet-records')->with('success', 'Pet registered successfully!');
+    }
+
+    public function destroy($id)
+    {
+        Pet::findOrFail($id)->delete();
+        return response()->json(['message' => 'Deleted']);
+    }
+    public function petRecords()
+    {
+        // Fetch only pets belonging to the logged-in user
+        $pets = Pet::where('user_id', Auth::id())
+            ->notDeceased()
+            ->with('latestVaccination')
+            ->latest()
+            ->get();
+
+        return view('pet-owner.pet-records', compact('pets'));
+    }
+
+    /**
+     * Single View: Shows the printable Digital ID Card for one specific pet
+     */
+    public function showDigitalId($id)
+    {
+        // Find pet by ID but ensure it belongs to the logged-in user for security
+        $pet = Pet::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->with('vaccinations') // Assuming you have this relationship
+            ->firstOrFail();
+
+        // Points to resources/views/pet-owner/digital-id.blade.php
+        return view('pet-owner.digital-id', compact('pet'));
+    }
+    public function publicProfile($pet_id)
+    {
+        // Search by the custom pet_id (e.g., PC-2026-8929) not the database auto-increment ID
+        $pet = Pet::where('pet_id', $pet_id)->firstOrFail();
+
+        return view('public.pet_verify', compact('pet'));
+    }
+
+    /**
+     * Profile page for the owner
+     */
+    public function profile()
+    {
+        return view('pet-owner.profile');
+    }
+
+    /**
+     * Update Owner Password
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'old_password' => 'required',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = auth()->user();
+
+        // Verify the old password matches the database hash
+        if (!Hash::check($request->old_password, $user->password)) {
+            return back()->with('error', 'The provided old password does not match our records.');
+        }
+
+        // Update the password
+        $user->update([
+            'password' => Hash::make($request->new_password),
+        ]);
+
+        // Log the security event
+        ActivityLog::record(
+            'UPDATE_PASSWORD',
+            "{$user->name} changed their account password."
+        );
+
+        return back()->with('success', 'Password successfully updated! You can now use your new password next time you log in.');
+    }
+
+    // --- Private Helper Methods ---
+    public function adminSearch(Request $request)
+    {
+        $input = $request->input('search');
+
+        if (!$input) {
+            return back()->with('error', 'Please scan a QR code or enter an ID.');
+        }
+
+        // Extracts the ID from the end of the URL (e.g., http://127.0.0.1:8000/verify-pet/9 -> 9)
+        $petId = basename(parse_url($input, PHP_URL_PATH));
+
+        // Try finding by internal ID or pet_id (whichever exists in schema)
+        $pet = Pet::withTrashed()->where(function ($q) use ($petId) {
+            $q->where('id', $petId)->orWhere('pet_id', $petId);
+        })->first();
+
+        if ($pet) {
+            // We send it to the pet-records route with the pet_id parameter
+            // The pet records view looks for ?pet_id= so we pass the pet's primary ID.
+            return redirect()->route('admin.pet-records', ['pet_id' => $pet->id]);
+        }
+
+        return back()->with('error', 'Pet record not found: ' . $petId);
+    }
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'species' => 'required',
+            'pet_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // 2MB Max
+        ]);
+
+        $pet = Pet::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
+
+        if ($request->hasFile('pet_image')) {
+            // Define the folder path
+            $folder = 'pets';
+            $file = $request->file('pet_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+
+            // Store the file in the public disk
+            $path = $file->storeAs($folder, $filename, 'public');
+
+            // Save the URL to the database
+            $pet->image_url = '/storage/' . $path;
+        }
+
+        $pet->name = $request->name;
+        $pet->species = $request->species;
+        $pet->breed = $request->breed;
+        $pet->save();
+
+        return back()->with('success', 'Pet profile updated successfully!');
+    }
+}
