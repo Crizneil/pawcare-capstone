@@ -1,6 +1,6 @@
 # PawCare Municipal Pet Management System
 
-## Master Defense Guide - Technical Flow Documentation
+##  Guide - Technical Flow Documentation
 
 **Prepared for: Thesis Defense Panel**  
 **System:** PawCare - Municipal Pet Management System (Laravel 11)  
@@ -19,6 +19,28 @@
 7. Printable Reporting & Analytics
 
 ---
+
+---
+
+### **SYSTEM DATA FLOW DIAGRAM (LEVEL 0 - CONTEXT)**
+
+```mermaid
+graph TD
+    Owner((Pet Owner)) -- Registers Account / Pet --> System[PawCare System]
+    Owner -- Books Appointment --> System
+    System -- Sends Email Confirmations --> Owner
+    
+    Staff((Clinic Staff)) -- Validates Appointments --> System
+    Staff -- Updates Medical Records --> System
+    Staff -- Manages Stock --> System
+    
+    Admin((System Admin)) -- Manages Users/Staff --> System
+    Admin -- Views Reports/Audit Logs --> System
+    Admin -- Configures Settings --> System
+    
+    System -- Queries/Updates --> DB[(MySQL Database)]
+    System -- QR Recognition --> External[Mobile ID Scanning]
+```
 
 ---
 
@@ -276,20 +298,17 @@ The PawCare calendar implements a **real-time slot availability system** that op
 
 #### **TECHNICAL ARCHITECTURE:**
 
-```
-Owner clicks "Book Appointment"
-    ↓
-Frontend loads FullCalendar widget
-    ↓
-JavaScript calls /admin/api/appointments (GET)
-    ↓
-AdminController::getAppointmentsApi() extracts booked slots
-    ↓
-Calculates occupancy per time-slot
-    ↓
-Returns JSON with slot status (available/full)
-    ↓
-Frontend renders green (empty) or red (full) slots
+```mermaid
+graph TD
+    Start([Owner: Book Appointment]) --> Page[Load fullCalendar.js]
+    Page --> API[GET /admin/api/appointments]
+    API --> Controller[AdminController: getAppointmentsApi]
+    Controller --> DB[(Query: appointments table)]
+    DB --> Filter[Filter: Status != 'CANCELLED']
+    Filter --> Process[Calculate Occupancy per Slot]
+    Process --> Output[/JSON Response: Slot Status/]
+    Output --> Render[Frontend: Green/Red Rendering]
+    Render --> End([Owner Selects Available Slot])
 ```
 
 #### **STAGE 1: SQL QUERY - Fetch Booked Appointments**
@@ -746,51 +765,30 @@ $lowStockVaccines = VaccineInventory
 // "⚠️ 3 vaccines below minimum stock"
 ```
 
-#### **DATA FLOW DIAGRAM:**
+#### **DATA FLOW DIAGRAM (MEDICAL-INVENTORY SYNC):**
 
-```
-Admin selects vaccine: "Rabies"
-        ↓
-Fetches from vaccine_inventories table
-    name='Rabies', stock=25
-        ↓
-Admin enters pet and dates
-        ↓
-Clicks "Save Vaccination"
-        ↓
-DB Transaction Starts:
-├─ Create vaccinations record
-│  ├─ pet_id=5
-│  ├─ vaccine_name='Rabies'
-│  └─ next_due_date=2027-02-28 ✅
-│
-├─ Find matching inventory
-│  └─ vaccine_inventories WHERE name='Rabies'
-│
-├─ Decrement stock
-│  └─ stock: 25 → 24
-│
-├─ Check threshold
-│  ├─ low_stock_threshold = 10
-│  ├─ Is 24 ≤ 10? NO
-│  └─ No alert yet
-│
-└─ DB Transaction Commits ✅
+```mermaid
+graph TD
+    Start([Admin/Staff: Save Vaccination]) --> Input[/Input: Vaccine Name, Date, Batch/]
+    Input --> DB_Transaction{Start DB Transaction}
+    
+    subgraph Atomic_Transaction [Atomic Process]
+        DB_Transaction --> Step1[Create Vaccination Record]
+        Step1 --> Step2[Find Vaccine In Inventory]
+        Step2 --> Step3[Decrement Stock Count -1]
+        Step3 --> Step4[Calculate Next Due Date]
+    end
+    
+    Step4 --> Commit[Commit Transaction]
+    Commit --> StockCheck{Stock <= Threshold?}
+    
+    StockCheck -- Yes --> Alert[Trigger Low Stock Alert]
+    StockCheck -- No --> Output[/Output: Record Saved & Stock Updated/]
+    
+    Alert --> Output
+    Output --> End([Flow Complete])
 
------- Later: 24 more administrations ------
-
-Next Rabies vaccination:
-        ↓
-Decrement stock: 1 → 0
-        ↓
-Check: Is 0 ≤ 10 (threshold)?
-        ↓
-YES! CRITICAL LOW STOCK
-        ↓
-Actions:
-├─ Email alert: "Rabies vaccine nearly depleted!"
-├─ Dashboard warning: RED
-└─ ActivityLog: "LOW_STOCK_ALERT: Rabies at 0 vials"
+    style Atomic_Transaction fill:#fff3e0,stroke:#ff9800,stroke-width:2px
 ```
 
 #### **WHY THIS IS "ATOMIC":**
@@ -936,19 +934,26 @@ $pet->update(['status' => 'INACTIVE']);
 // 4. Admin/Staff can use the "Recover" button to restore them to ACTIVE.
 ```
 
-#### **STAGE 4: DECEASED STATE (End of Life)**
+#### **THE ARCHIVE & RECOVERY FLOW:**
 
-**When admin marks pet as DECEASED:**
+```mermaid
+graph LR
+    Reg[Registered Pet] --> Active{Status: ACTIVE}
+    Active -- Marked Inactive --> Archive[Archive Center: INACTIVE]
+    Archive -- Recovered --> Active
+    Active -- Reported Deceased --> Mortality[Mortality Records: DECEASED]
+    Archive -- Reported Deceased --> Mortality
 
-```php
-// Admin clicks "Pet Deceased" in pet records
-$pet->update(['status' => 'DECEASED']);
+    subgraph Dashboard_Visibility
+        Active --> Main[Main Pet List]
+        Archive --> ArchList[Archive Center]
+    end
 
-// ActivityLog recorded:
-ActivityLog::record(
-    'MARK_DECEASED',
-    "Pet {$pet->name} marked as deceased"
-);
+    subgraph Reporting
+        Active --> Stats[Municipal Reports]
+        Archive --> Stats
+        Mortality --> Stats
+    end
 ```
 
 ---
