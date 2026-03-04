@@ -2,7 +2,6 @@
 
 ##  Guide - Technical Flow Documentation
 
-**Prepared for: Thesis Defense Panel**  
 **System:** PawCare - Municipal Pet Management System (Laravel 11)  
 **Date:** March 2026
 
