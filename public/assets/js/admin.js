@@ -94,6 +94,11 @@ $(document).ready(function () {
         });
     }
 
+    function handleMenu() {
+        // This allows your sidebar to toggle on mobile without crashing the script
+        $('#sidebar, #sidebarOverlay').toggleClass('active');
+    }
+
     // Initialize all functions
     adminDashboardLogic();
     initVaccinationLogic();

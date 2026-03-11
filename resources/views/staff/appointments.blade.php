@@ -28,6 +28,10 @@
                     href="{{ route('staff.appointments', ['view' => 'completed']) }}" style="transition: all 0.2s;">
                     <i data-lucide="check-circle" class="me-1 d-none d-sm-inline-block" style="width: 16px;"></i> Completed
                 </a>
+                <a class="btn rounded-pill px-4 fw-bold {{ $view == 'missed' ? 'btn-danger text-white shadow-sm' : 'btn-light text-muted border-0' }}"
+                    href="{{ route('staff.appointments', ['view' => 'missed']) }}">
+                    <i data-lucide="alert-circle" class="me-1 d-none d-sm-inline-block" style="width: 16px;"></i> Missed
+                </a>
             </div>
         </div>
 
@@ -68,11 +72,13 @@
                                 </td>
 
                                 <td data-label="Owner">
+                                    {{-- This will show the User Name, or "Guest/Walk-in" if user_id is null --}}
+                                    <div class="fw-bold text-dark">{{ $apt->user->name }}</div>
+
                                     @if($apt->user_id)
-                                        <div class="fw-bold text-dark">{{ $apt->user->name }}</div>
                                         <small class="text-muted"><i class="bi bi-person-check"></i> Member</small>
                                     @else
-                                        <div class="fw-bold text-muted small">Guest</div>
+                                        <small class="text-muted"><i class="bi bi-person-x"></i> Walk-in</small>
                                     @endif
                                 </td>
 
@@ -90,53 +96,103 @@
                                 </td>
 
                                 <td data-label="Status">
-                                    @if($apt->status == 'pending')
-                                        <span
-                                            class="badge rounded-pill bg-warning-subtle text-warning border border-warning px-3">Pending</span>
-                                    @elseif($apt->status == 'approved' || $apt->status == 'rescheduled')
-                                        <span
-                                            class="badge rounded-pill bg-info-subtle text-info border border-info px-3">Approved</span>
-                                    @elseif($apt->status == 'Done' || $apt->status == 'completed')
-                                        <span
-                                            class="badge rounded-pill bg-success-subtle text-success border border-success px-3">Completed</span>
-                                    @endif
+                                    @php
+                                        $statusClasses = [
+                                            'pending' => 'bg-warning-subtle text-warning border-warning',
+                                            'approved' => 'bg-info-subtle text-info border-info',
+                                            'rescheduled' => 'bg-info-subtle text-info border-info',
+                                            'checked-in' => 'bg-primary-subtle text-primary border-primary',
+                                            'late' => 'bg-secondary-subtle text-secondary border-secondary',
+                                            'missed' => 'bg-danger-subtle text-danger border-danger',
+                                            'Done' => 'bg-success-subtle text-success border-success',
+                                            'completed' => 'bg-success-subtle text-success border-success',
+                                        ];
+                                        $currentStatus = strtolower($apt->status);
+                                        $class = $statusClasses[$currentStatus] ?? 'bg-light text-dark';
+                                    @endphp
+                                    <span class="badge rounded-pill px-3 border {{ $class }}">
+                                        {{ ucwords(str_replace('-', ' ', $apt->status)) }}
+                                    </span>
                                 </td>
 
                                 {{-- Actions Column --}}
                                 <td class="text-end pe-4" data-label="Actions">
                                     <div class="dropdown">
-                                        <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" type="button"
-                                            data-bs-toggle="dropdown">
+                                        <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" type="button" data-bs-toggle="dropdown">
                                             Manage <i data-lucide="more-vertical" class="ms-1" style="width: 14px;"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3">
-                                            @if($isApproved)
-                                                @if(strtolower($apt->service_type) !== 'checkup')
+
+                                            {{-- STAGE 1: Approved/Pending -> Check-In or Late --}}
+                                            @if(in_array($currentStatus, ['approved', 'pending', 'rescheduled']))
+                                                <li>
+                                                    <form action="{{ route('staff.appointments.update', $apt->id) }}" method="POST">
+                                                        @csrf
+                                                        <input type="hidden" name="status" value="checked-in">
+                                                        <button class="dropdown-item py-2 text-primary">
+                                                            <i data-lucide="user-check" class="me-2" style="width: 16px;"></i> Check-In Patient
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <form action="{{ route('staff.appointments.update', $apt->id) }}" method="POST">
+                                                        @csrf
+                                                        <input type="hidden" name="status" value="late">
+                                                        <button class="dropdown-item py-2 text-muted">
+                                                            <i data-lucide="clock-alert" class="me-2" style="width: 16px;"></i> Mark as Late
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            @endif
+
+                                            {{-- STAGE 2: Late -> Can still Check-In or Reschedule --}}
+                                            @if($currentStatus == 'late')
+                                                <li>
+                                                    <form action="{{ route('staff.appointments.update', $apt->id) }}" method="POST">
+                                                        @csrf
+                                                        <input type="hidden" name="status" value="checked-in">
+                                                        <button class="dropdown-item py-2 text-primary">
+                                                            <i data-lucide="user-check" class="me-2" style="width: 16px;"></i> Late Arrival (Check-In)
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <button class="dropdown-item py-2" data-bs-toggle="modal" data-bs-target="#rescheduleModal{{ $apt->id }}">
+                                                        <i data-lucide="calendar-days" class="me-2" style="width: 16px;"></i> Reschedule
+                                                    </button>
+                                                </li>
+                                            @endif
+
+                                            {{-- STAGE 3: Checked-In -> Actionable Services --}}
+                                            @if($currentStatus == 'checked-in')
+                                                @if(stripos($apt->service_type, 'vaccination') !== false || stripos($apt->service_type, 'deworming') !== false)
                                                     <li>
-                                                        <a class="dropdown-item py-2"
-                                                            href="{{ route('staff.vaccination-status', ['search' => $apt->pet_name, 'apt_id' => $apt->id]) }}">
-                                                            <i data-lucide="syringe" class="me-2 text-primary" style="width: 16px;"></i>
-                                                            Start Vaccination
+                                                        <a class="dropdown-item py-2 text-primary fw-bold" href="{{ route('staff.vaccination-status', ['search' => $apt->pet_name, 'apt_id' => $apt->id]) }}">
+                                                            <i data-lucide="syringe" class="me-2" style="width: 16px;"></i> Start Procedure
                                                         </a>
                                                     </li>
                                                 @endif
                                                 <li>
-                                                    <button type="button" class="dropdown-item py-2 text-success"
-                                                        data-bs-toggle="modal" data-bs-target="#confirmDoneModal{{ $apt->id }}">
-                                                        <i data-lucide="check-circle" class="me-2" style="width: 16px;"></i> Mark as
-                                                        Completed
+                                                    <button type="button" class="dropdown-item py-2 text-success" data-bs-toggle="modal" data-bs-target="#confirmDoneModal{{ $apt->id }}">
+                                                        <i data-lucide="check-circle" class="me-2" style="width: 16px;"></i> Mark as Done
                                                     </button>
                                                 </li>
-                                            @elseif($isCompleted)
+                                            @endif
+
+                                            {{-- Missed View --}}
+                                            @if($currentStatus == 'missed')
                                                 <li>
-                                                    <button class="dropdown-item py-2" data-bs-toggle="modal"
-                                                        data-bs-target="#viewResultModal{{ $apt->id }}">
-                                                        <i data-lucide="eye" class="me-2 text-info" style="width: 16px;"></i> View
-                                                        Results
+                                                    <button class="dropdown-item py-2" data-bs-toggle="modal" data-bs-target="#rescheduleModal{{ $apt->id }}">
+                                                        <i data-lucide="calendar-days" class="me-2" style="width: 16px;"></i> Reschedule Missed Visit
                                                     </button>
                                                 </li>
-                                            @else
-                                                <li><span class="dropdown-item-text text-muted small">No actions available</span>
+                                            @endif
+
+                                            @if(in_array($currentStatus, ['done', 'completed']))
+                                                <li>
+                                                    <button class="dropdown-item py-2" data-bs-toggle="modal" data-bs-target="#viewResultModal{{ $apt->id }}">
+                                                        <i data-lucide="eye" class="me-2 text-info" style="width: 16px;"></i> View Results
+                                                    </button>
                                                 </li>
                                             @endif
                                         </ul>
@@ -161,16 +217,21 @@
 
     {{-- Modals Loop --}}
     @foreach($appointments as $apt)
-        @php
-            $isCompleted = in_array(strtolower($apt->status), ['done', 'completed']);
-            $isApproved = in_array(strtolower($apt->status), ['approved', 'rescheduled', 'pending']);
+       @php
+            $currentStatus = strtolower($apt->status);
+            $isCompleted = in_array($currentStatus, ['done', 'completed']);
+            $isActionable = in_array($currentStatus, ['approved', 'rescheduled', 'pending', 'checked-in']);
         @endphp
+
+        @if($view == 'missed')
+            @include('partials._reschedule_modal', ['appointment' => $apt])
+        @endif
 
         @if($isCompleted)
             @include('partials._view_appointment_result_modal', ['appointment' => $apt])
         @endif
 
-        @if($isApproved)
+        @if($isActionable)
             @include('partials._confirm_done_modal', ['appointment' => $apt])
         @endif
     @endforeach

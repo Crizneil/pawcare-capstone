@@ -374,21 +374,26 @@ class PetController extends Controller
             return back()->with('error', 'Please scan a QR code or enter an ID.');
         }
 
-        // Extracts the ID from the end of the URL (e.g., http://127.0.0.1:8000/verify-pet/9 -> 9)
-        $petId = basename(parse_url($input, PHP_URL_PATH));
+        // 1. If it's a full URL, extract the last segment
+        if (filter_var($input, FILTER_VALIDATE_URL)) {
+            $petId = basename(parse_url($input, PHP_URL_PATH));
+        } else {
+            // 2. Otherwise use the input directly (could be a custom ID or primary ID)
+            $petId = $input;
+        }
 
         // Try finding by internal ID or pet_id (whichever exists in schema)
         $pet = Pet::withTrashed()->where(function ($q) use ($petId) {
-            $q->where('id', $petId)->orWhere('pet_id', $petId);
+            $q->where('id', $petId)
+                ->orWhere('pet_id', 'like', "%{$petId}%");
         })->first();
 
         if ($pet) {
-            // We send it to the pet-records route with the pet_id parameter
-            // The pet records view looks for ?pet_id= so we pass the pet's primary ID.
+            // Forward to the pet records with the primary DB ID for unambiguous filtering
             return redirect()->route('admin.pet-records', ['pet_id' => $pet->id]);
         }
 
-        return back()->with('error', 'Pet record not found: ' . $petId);
+        return back()->with('error', 'Pet record not found for: ' . $petId);
     }
     public function update(Request $request, $id)
     {
@@ -413,10 +418,21 @@ class PetController extends Controller
             $pet->image_url = '/storage/' . $path;
         }
 
+        $oldStatus = $pet->status;
+        $newStatus = $request->status ?? $pet->status;
+
         $pet->name = $request->name;
         $pet->species = $request->species;
         $pet->breed = $request->breed;
+        $pet->status = $newStatus;
         $pet->save();
+
+        if ($oldStatus !== 'DECEASED' && $newStatus === 'DECEASED') {
+            session()->flash('status_changed', [
+                'type' => 'DECEASED',
+                'pet_name' => $pet->name
+            ]);
+        }
 
         return back()->with('success', 'Pet profile updated successfully!');
     }

@@ -57,14 +57,15 @@
                                     <div class="bg-blue-light rounded-circle p-2 me-3 text-primary text-center d-none d-md-block" style="width:40px; height:40px;">
                                         <i data-lucide="dog" style="width:20px;"></i>
                                     </div>
-                                    <div class="text-end-mobile"> {{-- Helper for mobile alignment --}}
+                                    <div class="text-end-mobile">
                                         <div class="fw-bold text-dark">{{ $pet->name }}</div>
                                         @php
-                                            $latestApt = $pet->appointments->last();
+                                            // Get the single most recent appointment for this pet
+                                            $latestApt = $pet->appointments->sortByDesc('created_at')->first();
                                             $aptStatus = strtolower($latestApt->status ?? '');
                                         @endphp
 
-                                        @if($aptStatus == 'approved')
+                                        @if($aptStatus == 'checked-in')
                                             <span class="badge bg-soft-warning text-warning" style="font-size: 0.65rem;">READY FOR SHOT</span>
                                         @elseif(in_array($aptStatus, ['done', 'completed']))
                                             <span class="badge bg-soft-success text-success" style="font-size: 0.65rem;">TREATMENT COMPLETED</span>

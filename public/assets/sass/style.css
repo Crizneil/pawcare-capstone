@@ -9553,4 +9553,68 @@ html {
            sticky-top, Bootstrap handles the flow automatically. */
     }
 }
+/* ======================================================
+   25. TomSelect & Walk-in Modal Integration
+====================================================== */
+.ts-dropdown {
+    z-index: 3050 !important;
+    border: none !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+    border-radius: 15px !important;
+    padding: 5px !important;
+}
+
+.ts-control {
+    border-radius: 50px !important;
+    padding: 0 1rem !important; /* Adjusted for centering */
+    min-height: 42px !important;
+    background-color: #f8f9fa !important;
+    border: 1.5px solid transparent !important;
+    font-family: 'Outfit', sans-serif !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer;
+}
+
+.ts-wrapper.focus .ts-control {
+    border-color: var(--paw-primary) !important;
+    background-color: #fff !important;
+    box-shadow: 0 0 0 0.25rem rgba(211, 84, 0, 0.1) !important;
+}
+
+/*  Single line layout for the selected item */
+.ts-wrapper.single .ts-control .item {
+    display: flex !important;
+    flex-direction: row !important; /* Forces side-by-side */
+    align-items: center;
+    gap: 8px; /* Space between Name and Email */
+    line-height: 1.2;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    pointer-events: none;
+}
+
+/* REMOVED: .remove-button styles since the button is gone */
+.ts-wrapper .remove {
+    display: none !important;
+}
+
+/* Hides the text cursor when an item is already selected */
+.ts-wrapper.single.has-items .ts-control input {
+    display: none !important;
+}
+
+.ts-dropdown .option {
+    border-radius: 10px;
+    margin-bottom: 2px;
+}
+
+.ts-dropdown .active {
+    background-color: var(--paw-secondary) !important;
+    color: var(--paw-primary) !important;
+}
 /*# sourceMappingURL=style.css.map */

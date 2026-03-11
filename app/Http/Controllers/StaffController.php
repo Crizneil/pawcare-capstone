@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\WelcomeEmail;
 
 
 class StaffController extends Controller
@@ -19,7 +21,6 @@ class StaffController extends Controller
     public function dashboard()
     {
         return view('staff.dashboard', [
-            // Fix: Only show approved appointments for today
             'appointmentsToday' => Appointment::whereDate('appointment_date', today())
                 ->where('status', 'approved')
                 ->get(),
@@ -27,131 +28,220 @@ class StaffController extends Controller
             'lowStock' => VaccineInventory::whereColumn('stock', '<=', 'low_stock_threshold')->get(),
             'recentVaccinations' => Vaccination::whereHas('pet', function ($q) {
                 $q->notDeceased();
-            })->with('pet')->latest()->limit(5)->get()
+            })->with('pet')->latest()->limit(5)->get(),
+
+            'owners' => User::where('role', 'owner')->orderBy('name')->get()
         ]);
     }
 
     public function appointments(Request $request)
     {
         $view = $request->get('view', 'today');
+        $overdueAppointments = Appointment::whereDate('appointment_date', today())
+            ->whereIn('status', ['approved', 'pending', 'late'])
+            ->get();
+
+        foreach ($overdueAppointments as $apt) {
+            $scheduledTime = \Carbon\Carbon::parse($apt->appointment_date . ' ' . $apt->appointment_time);
+
+            // If current time is 15 mins past schedule (diff < -15)
+            if (now()->diffInMinutes($scheduledTime, false) < -15) {
+                $apt->update(['status' => 'missed']);
+            }
+        }
         $query = Appointment::with('user');
 
         $appointments = match ($view) {
-            // Fix: Only show approved for upcoming and today
             'upcoming' => $query->where('appointment_date', '>', today())
-                ->where('status', 'approved'),
+                                ->whereIn('status', ['approved', 'rescheduled']),
 
             'completed' => $query->whereIn('status', ['Done', 'completed']),
 
-            default => $query->whereDate('appointment_date', today())
-                ->whereIn('status', ['pending', 'approved']),
-        };
-        $paginatedAppointments = $appointments->latest()
-            ->paginate(10)
-            ->appends(['view' => $view]);
+            'missed' => $query->whereIn('status', ['missed']), // Explicitly missed
 
-        return view('staff.appointments', ['appointments' => $paginatedAppointments, 'view' => $view]);
+            // Today's view now includes the active workflow statuses
+            default => $query->whereDate('appointment_date', today())
+                                ->whereIn('status', ['pending', 'approved', 'checked-in', 'late']),
+        };
+
+        $paginatedAppointments = $appointments->orderBy('appointment_date')
+                             ->orderBy('appointment_time')
+                             ->paginate(10)
+                             ->appends(['view' => $view]);
+
+        return view('staff.appointments', [
+            'appointments' => $paginatedAppointments,
+            'view' => $view,
+            'owners' => User::where('role', 'owner')->orderBy('name')->get()
+        ]);
     }
 
-    public function updateAppointmentStatus($id, $status)
+    public function updateAppointmentStatus(Request $request, $id,)
     {
+        $newStatus = $request->status;
         $appointment = Appointment::findOrFail($id);
-        $appointment->status = $status;
 
-        if (strtolower($status) === 'done' || strtolower($status) === 'completed') {
-            // Find inventory matching the service type (e.g., 'Deworming' or 'Anti-Rabies')
-            $inventory = VaccineInventory::where('name', $appointment->service_type)->first();
+        // Normalize to lowercase for the check
+        $checkStatus = strtolower($newStatus);
 
-            $actualBatchNo = $inventory ? $inventory->batch_no : 'V-2026-' . strtoupper(substr(uniqid(), -4));
+        if (in_array($checkStatus, ['done', 'completed'])) {
+
+            // 1. Prevent double processing
+            if ($appointment->status === 'Done' || $appointment->status === 'completed') {
+                return back()->with('info', 'This appointment is already processed.');
+            }
 
             $appointment->administered_by = auth()->user()->name;
-            $appointment->batch_no = $actualBatchNo;
-            $appointment->vaccine_name = $inventory ? $inventory->name : $appointment->service_type;
-            $appointment->next_due_date = now()->addYear();
+            $appointment->status = 'Done';
 
-            if ($inventory && $inventory->stock > 0) {
-                $inventory->decrement('stock', 1);
+            // 2. Run Medical Services Logic (Vaccination/Inventory)
+            $recordName = $appointment->vaccine_name ?? $appointment->service_type;
+            $inventory = VaccineInventory::where('name', $recordName)->first();
+            $medicalServices = ['Vaccination', 'Deworming', 'Check-up', 'Kapon'];
+
+            if (in_array($appointment->service_type, $medicalServices)) {
+                $finalName = $inventory ? $inventory->name : $recordName;
+                $batchNo = $inventory ? $inventory->batch_no : 'MANUAL-'.date('Ymd');
+
+                $pet = Pet::find($appointment->pet_id);
+                if ($pet) {
+                    // Update Pet Medical State
+                    $pet->update([
+                        'vaccine_type' => $finalName,
+                        'last_date' => now(),
+                        'next_date' => now()->addYear(),
+                    ]);
+
+                    // Create History Record
+                    Vaccination::create([
+                        'pet_id' => $pet->id,
+                        'staff_id' => auth()->id(),
+                        'vaccine_name' => $finalName,
+                        'date_administered' => now(),
+                        'next_due_date' => now()->addYear(),
+                        'batch_no' => $batchNo,
+                        'status' => 'Up to Date'
+                    ]);
+                }
+
+                // Deduct from Vaccine Inventory
+                if ($inventory && $inventory->stock > 0) {
+                    $inventory->decrement('stock', 1);
+                }
             }
 
-            $pet = Pet::find($appointment->pet_id);
-            if ($pet) {
-                $pet->update([
-                    'vaccine_type' => $appointment->service_type,
-                    'last_date' => now(),
-                    'next_date' => $appointment->next_due_date,
-                ]);
+            $appointment->save();
+            return back()->with('success', "Patient treatment is now Complete");
 
-                // Create the record in the History table
-                Vaccination::create([
-                    'pet_id' => $pet->id,
-                    'staff_id' => auth()->id(),
-                    'vaccine_name' => $appointment->service_type,
-                    'date_administered' => now(),
-                    'next_due_date' => $appointment->next_due_date,
-                    'batch_no' => $actualBatchNo,
-                    'status' => 'Up to Date'
-                ]);
-            }
+        } else {
+            // Handle simple status updates like 'checked-in', 'late', etc.
+            $appointment->status = $newStatus;
+            $appointment->save();
+            return back()->with('success', "Patient is now " . ucfirst($newStatus));
         }
-
-        $appointment->save();
-        return back()->with('success', "Appointment updated and Vaccination History recorded!");
     }
     public function storeAppointment(Request $request)
     {
-        $request->validate([
+        // 1. Updated Validation Logic
+        $rules = [
+            'owner_status' => 'required|in:existing,new',
             'pet_name' => 'required|string|max:255',
             'species' => 'required',
             'gender' => 'required',
             'breed' => 'required',
             'service_type' => 'required',
-            'email' => 'required_if:create_account,1|nullable|email|unique:users,email',
-        ]);
+            'schedule_time' => 'required',
+            'birthday' => 'nullable|date',
+        ];
 
-        $userId = null;
-        $ownerName = 'Guest'; // Default value for all walk-ins
-
-        // 1. Handle Account Creation
-        $ownerName = 'Guest';
-
-        if ($request->has('create_account') && $request->email) {
-            $user = User::create([
-                'name' => $request->owner_name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'password' => Hash::make('PawCare2026'),
-                'role' => 'user',
-            ]);
-            $userId = $user->id;
-            $ownerName = $user->name;
+        if ($request->owner_status === 'new') {
+            $rules['first_name'] = 'required|string|max:255';
+            $rules['last_name'] = 'required|string|max:255';
+            $rules['phone'] = 'required|string';
+            $rules['email'] = 'nullable|email|unique:users,email';
+            $rules['owner_gender'] = 'nullable|string';
+        } else {
+            $rules['user_id'] = 'required|exists:users,id';
         }
 
+        $request->validate($rules);
+
+        // --- STEP 2: Handle Owner Logic ---
+        $userId = null;
+        $ownerName = 'Guest';
+
+        if ($request->owner_status === 'existing') {
+            $user = User::findOrFail($request->user_id);
+            $userId = $user->id;
+            $ownerName = $user->name;
+        } else {
+            // Construct the full name including middle initial
+            $fullName = trim("{$request->first_name} " . ($request->middle_initial ? "{$request->middle_initial}. " : "") . $request->last_name);
+
+            if ($request->has('create_online_account') && $request->email) {
+                $plainPassword = 'PawCare2026';
+
+                $user = User::create([
+                    'name' => $fullName,
+                    'email' => $request->email,
+                    'phone' => $request->phone,
+                    'role' => 'owner',
+                    'gender' => $request->owner_gender, // Saved from new select
+                    'house_no' => $request->house_no,
+                    'street' => $request->street,
+                    'barangay' => $request->barangay,
+                    'city' => $request->city ?? 'Meycauayan City',
+                    'province' => $request->province ?? 'Bulacan',
+                    'password' => Hash::make($plainPassword),
+                ]);
+
+                $userId = $user->id;
+                $ownerName = $user->name;
+
+                Mail::send('emails.welcome', ['user' => $user, 'password' => $plainPassword], function($message) use ($user) {
+                    $message->to($user->email)->subject('Welcome to the Pack, ' . $user->name . '! 🐾');
+                });
+            } else {
+                $userId = null;
+                $ownerName = $fullName;
+            }
+        }
+
+        // 3. Handle Breed Logic
         $finalBreed = ($request->breed === 'Other') ? $request->other_breed : $request->breed;
 
+        // 4. Create Pet Record
+        $petCount = Pet::withTrashed()->count() + 1;
         $pet = Pet::create([
             'user_id' => $userId,
-            'pet_id' => 'WALK-' . strtoupper(substr(uniqid(), -5)),
+            'pet_id' => 'WALK-' . strtoupper(substr(uniqid(), -3)) . '-' . str_pad($petCount, 3, '0', STR_PAD_LEFT),
             'name' => $request->pet_name,
             'species' => $request->species,
             'gender' => $request->gender,
             'birthday' => $request->birthday ?? now(),
             'breed' => $finalBreed,
             'owner' => $ownerName,
+            'owner_phone' => $request->phone,
             'status' => 'ACTIVE',
+            // Optional: Save address to pet record as well for quick reference
+            'house_no' => $request->house_no,
+            'street' => $request->street,
+            'barangay' => $request->barangay,
         ]);
 
+        // 5. Create the Appointment using the form's time
         Appointment::create([
             'user_id' => $userId,
             'pet_id' => $pet->id,
             'pet_name' => $pet->name,
             'species' => $pet->species,
-            'appointment_date' => now()->toDateString(),
-            'appointment_time' => now()->toTimeString(),
+            'appointment_date' => now()->toDateString(), // Walk-ins are usually today
+            'appointment_time' => $request->schedule_time, // Use the input from modal
             'service_type' => $request->service_type,
             'status' => 'approved',
         ]);
 
-        return back()->with('success', 'Walk-in registered successfully!');
+        return back()->with('success', 'Walk-in appointment created for ' . $ownerName);
     }
     public function petRecords(Request $request)
     {
@@ -200,13 +290,13 @@ class StaffController extends Controller
     }
     public function vaccinationStatus(Request $request)
     {
-        // 1. Start the query with relationships
+        // 1. Start query with relationships
         $query = Pet::notDeceased()->with(['user', 'latestVaccination', 'appointments']);
 
-        // Show pets that have EITHER an Approved appointment (ready for shot)
-        // OR a Completed/Done appointment (so staff can see the history of what they just did)
+        // 2. Filter logic: Show pets with RECENT activity or pending approved appointments
         $query->whereHas('appointments', function ($q) {
-            $q->whereIn('status', ['approved', 'Done', 'completed', 'rescheduled']);
+            $q->whereIn('status', ['approved', 'checked-in', 'Done', 'completed', 'rescheduled', 'late'])
+            ->whereIn('service_type', ['Vaccination', 'Deworming', 'Check-up', 'Kapon']);
         });
 
         // Search Filter
@@ -220,11 +310,12 @@ class StaffController extends Controller
 
         // Filter for pets vaccinated today
         if ($request->has('today')) {
-            $query->whereHas('vaccinations', fn($q) => $q->whereDate('date_administered', today()));
+        $query->whereHas('vaccinations', function($q) {
+            $q->whereDate('date_administered', today());
+        });
         }
 
         $pets = $query->latest()->paginate(10)->appends($request->query());
-
         return view('staff.vaccination-status', compact('pets'));
     }
 
@@ -309,16 +400,13 @@ class StaffController extends Controller
             'next_due_date' => 'required|date',
         ]);
 
-        // Find the specific vaccine in inventory to get its REAL batch number
         $inventory = VaccineInventory::where('name', $request->vaccine_name)->first();
 
         if (!$inventory || $inventory->stock <= 0) {
             return back()->with('error', "Insufficient stock for {$request->vaccine_name}!");
         }
 
-        // Use the actual batch number from  inventory records
         $actualBatchNo = $inventory->batch_no;
-
         $inventory->decrement('stock', 1);
 
         // 1. Create Vaccination Record
@@ -328,7 +416,7 @@ class StaffController extends Controller
             'vaccine_name' => $request->vaccine_name,
             'date_administered' => $request->date_administered,
             'next_due_date' => $request->next_due_date,
-            'batch_no' => $actualBatchNo, // Save the real batch number here
+            'batch_no' => $actualBatchNo,
         ]);
 
         // 2. Update Pet Medical Record
@@ -339,22 +427,21 @@ class StaffController extends Controller
             'next_date' => $request->next_due_date,
         ]);
 
-        // 3. Update the Appointment
+        // 3. Update the Appointment status so the badge changes
         if ($request->appointment_id) {
             $appointment = Appointment::find($request->appointment_id);
             if ($appointment) {
                 $appointment->update([
-                    'status' => 'Done',
+                    'status' => 'Done', // This switches the badge from "Ready" to "Completed"
                     'administered_by' => auth()->user()->name,
                     'batch_no' => $actualBatchNo,
-                    'vaccine_name' => $request->vaccine_name, // Store the specific vaccine used
+                    'vaccine_name' => $request->vaccine_name,
                     'next_due_date' => $request->next_due_date,
                 ]);
             }
         }
 
-        return redirect()->route('staff.appointments', ['view' => 'completed'])
-            ->with('success', "Vaccination logged and appointment completed!");
+        return back()->with('success', "Vaccination logged and status updated!");
     }
 
     public function requestDigitalCard(Request $request, $id)
@@ -375,4 +462,121 @@ class StaffController extends Controller
 
         return back()->with('success', 'Vaccination record added!');
     }
+    public function ownerProfile(Request $request, $id)
+    {
+        // 1. If the request explicitly says 'walkin', skip User table and go to Pet table
+        if ($request->query('type') === 'walkin') {
+            $pet = Pet::findOrFail($id);
+            return $this->buildWalkinObject($pet);
+        }
+
+        // 2. Try to find an actual Registered User
+        $owner = User::with('pets')->find($id);
+
+        // 3. If User exists, show their profile
+        if ($owner) {
+            return view('staff.pet-owners', compact('owner'));
+        }
+
+        // 4. Fallback: If no User was found with that ID, check if it's a Pet ID
+        $pet = Pet::findOrFail($id);
+        return $this->buildWalkinObject($pet);
+    }
+
+    private function buildWalkinObject($pet)
+    {
+        $owner = (object)[
+            'id' => null,
+            'pet_id' => $pet->id,
+            'name' => $pet->owner,
+            'phone' => $pet->owner_phone ?? 'N/A',
+            'email' => null,
+            'password' => null,
+            'house_no' => $pet->house_no ?? '',
+            'street' => $pet->street ?? '',
+            'barangay' => $pet->barangay ?? '',
+            'city' => 'Meycauayan',
+            'province' => 'Bulacan',
+            'pets' => collect([$pet])
+        ];
+
+        return view('staff.pet-owners', compact('owner'));
+    }
+
+    public function createAccount(Request $request, $id)
+    {
+        // 1. Determine if we are upgrading a Walk-in Pet record or an existing User record
+        if ($request->input('is_walkin') == '1') {
+            // Find the pet to get the owner details
+            $pet = Pet::findOrFail($id);
+
+            // Validate the email (since walk-ins usually don't have one)
+            $request->validate([
+                'email' => 'required|email|unique:users,email'
+            ]);
+
+            $plainPassword = 'PawCare2026';
+
+            // Create the new User record
+            $owner = User::create([
+                'name' => $pet->owner,
+                'email' => $request->email,
+                'phone' => $pet->owner_phone ?? 'N/A',
+                'role' => 'owner',
+                'password' => Hash::make($plainPassword),
+                // Copy address from pet record if you have those columns
+                'house_no' => $pet->house_no,
+                'street' => $pet->street,
+                'barangay' => $pet->barangay,
+                'city' => 'Meycauayan',
+                'province' => 'Bulacan',
+            ]);
+
+            // Link THIS pet (and any others with the same owner name/phone) to the new user
+            Pet::where('owner', $pet->owner)
+                ->whereNull('user_id')
+                ->update(['user_id' => $owner->id]);
+
+        } else {
+            // Standard flow for existing User record without a password
+            $owner = User::findOrFail($id);
+
+            if (!$owner->email) {
+                $request->validate(['email' => 'required|email|unique:users,email']);
+                $owner->email = $request->email;
+            }
+
+            $plainPassword = 'PawCare2026';
+            $owner->password = Hash::make($plainPassword);
+            $owner->save();
+        }
+
+        // 2. Send the Welcome Email
+        Mail::send('emails.welcome', ['user' => $owner, 'password' => $plainPassword], function($message) use ($owner) {
+            $message->to($owner->email)->subject('Welcome to PawCare! 🐾');
+        });
+
+        return redirect()->route('staff.pet-owners', $owner->id)
+            ->with('success', 'Online account activated! Credentials sent to ' . $owner->email);
+    }
+
+    public function reschedule(Request $request, $id)
+    {
+        $request->validate([
+            'appointment_date' => 'required|date|after_or_equal:today',
+            'appointment_time' => 'required',
+        ]);
+
+        $appointment = Appointment::findOrFail($id);
+
+        // Log the change or update the record
+        $appointment->update([
+            'appointment_date' => $request->appointment_date,
+            'appointment_time' => $request->appointment_time,
+            'status' => 'rescheduled', // Changing status moves it from 'missed' to 'upcoming'
+        ]);
+
+        return back()->with('success', "Appointment for {$appointment->pet_name} has been rescheduled to " . \Carbon\Carbon::parse($request->appointment_date)->format('M d, Y'));
+    }
+
 }

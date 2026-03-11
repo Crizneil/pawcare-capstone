@@ -12,11 +12,27 @@
             <p class="text-muted small mb-0">Manage vaccine stock and expiry tracking.</p>
         </div>
 
-        <button class="btn btn-orange rounded-pill px-4 py-2 shadow-sm fw-bold"
-                data-bs-toggle="modal"
-                data-bs-target="#addVaccineModal">
-            <i class="bi bi-plus-lg me-1"></i> Add Vaccine
-        </button>
+        <div class="d-flex gap-2">
+            <div class="dropdown">
+                <button class="btn btn-outline-dark rounded-pill px-4 py-2 shadow-sm fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Generate Report
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
+                    <li><a class="dropdown-item py-2" href="{{ route('admin.reports.vaccine', ['type' => 'all']) }}" target="_blank">
+                        <i class="bi bi-list-check me-2"></i> Full Inventory Report</a></li>
+                    <li><a class="dropdown-item py-2" href="{{ route('admin.reports.vaccine', ['type' => 'low_stock']) }}" target="_blank">
+                        <i class="bi bi-exclamation-triangle me-2 text-warning"></i> Low Stock Report</a></li>
+                    <li><a class="dropdown-item py-2" href="{{ route('admin.reports.vaccine', ['type' => 'expiring']) }}" target="_blank">
+                        <i class="bi bi-calendar-x me-2 text-danger"></i> Expiring Vaccines Report</a></li>
+                </ul>
+            </div>
+
+            <button class="btn btn-orange rounded-pill px-4 py-2 shadow-sm fw-bold"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addVaccineModal">
+                <i class="bi bi-plus-lg me-1"></i> Add Vaccine
+            </button>
+        </div>
     </div>
 
     <div class="card shadow-sm border-0 rounded-4 mb-4 p-3">
@@ -46,6 +62,7 @@
                         <tr class="text-uppercase small fw-bold text-muted">
                             <th class="ps-4">Vaccine</th>
                             <th>Batch No.</th>
+                            <th>Received</th>
                             <th>Stock</th>
                             <th>Status</th>
                             <th>Expiry Date</th>
@@ -70,6 +87,11 @@
                             </td>
                             <td data-label="Batch No.">
                                 <span class="text-primary fw-medium">{{ $vaccine->batch_no ?? 'N/A' }}</span>
+                            </td>
+                            <td data-label="Received">
+                                <span class="small text-muted">
+                                    {{ $vaccine->received_date ? \Carbon\Carbon::parse($vaccine->received_date)->format('M d, Y') : 'N/A' }}
+                                </span>
                             </td>
                             <td data-label="Stock">
                                 <span class="badge {{ $isOutOfStock ? 'bg-danger' : ($isLowStock ? 'bg-warning text-dark' : 'bg-success') }} rounded-pill px-3">

@@ -7,7 +7,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('admin.appointments.reschedule', $appointment->id) }}" method="POST">
+            <form action="{{ route('staff.appointments.reschedule', $appointment->id) }}" method="POST">
                 @csrf
                 <div class="modal-body px-4">
                     <div class="row g-3">

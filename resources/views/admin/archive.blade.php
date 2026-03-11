@@ -34,9 +34,12 @@
         </ul>
 
         <div class="card shadow-sm border-0 rounded-4 mb-4 p-3">
-            <form action="{{ route('admin.archive') }}" method="GET" class="row g-2">
+            <form action="{{ route('admin.archive') }}" method="GET" class="row g-2 align-items-end">
                 <input type="hidden" name="tab" value="{{ $tab }}">
-                <div class="col-12 col-md-10">
+
+                {{-- Search Input --}}
+                <div class="col-12 {{ $tab === 'pets' ? 'col-md-7' : 'col-md-10' }}">
+                    <label class="small text-muted mb-1">Search Keywords</label>
                     <div class="input-group">
                         <span class="input-group-text border-0 bg-light rounded-start-pill ps-3 ps-md-4">
                             <i data-lucide="search" class="text-muted size-18"></i>
@@ -46,8 +49,23 @@
                             placeholder="Search archived {{ $tab }}...">
                     </div>
                 </div>
+
+                {{-- Dynamic Status Filter for Pets --}}
+                @if($tab === 'pets')
+                <div class="col-12 col-md-3">
+                    <label class="small text-muted mb-1">Pet Status</label>
+                    <select name="status" class="form-select border-0 bg-light rounded-pill py-2">
+                        <option value="">All Statuses</option>
+                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        <option value="deceased" {{ request('status') == 'deceased' ? 'selected' : '' }}>Deceased</option>
+                    </select>
+                </div>
+                @endif
+
+                {{-- Search Button --}}
                 <div class="col-12 col-md-2">
-                    <button class="btn btn-orange w-100 rounded-pill py-2 fw-bold shadow-sm">Search</button>
+                    <button class="btn btn-orange w-100 rounded-pill py-2 fw-bold shadow-sm">Filter</button>
                 </div>
             </form>
         </div>
@@ -62,6 +80,7 @@
                                     <th class="ps-4">Pet Name</th>
                                     <th>Owner</th>
                                     <th>Breed</th>
+                                    <th>Status</th>
                                     <th>Deleted At</th>
                                     <th class="text-end pe-4">Actions</th>
                                 </tr>
@@ -89,6 +108,15 @@
                                         <td class="ps-4 fw-bold text-dark">{{ $item->name }}</td>
                                         <td>{{ $item->user->name ?? 'Unknown' }}</td>
                                         <td>{{ $item->breed }}</td>
+                                        <td>
+                                            @if($item->trashed())
+                                                <span class="badge rounded-pill bg-danger text-white">Removed</span>
+                                            @elseif($item->status === 'DECEASED')
+                                                <span class="badge rounded-pill bg-dark text-white">Deceased</span>
+                                            @else
+                                                <span class="badge rounded-pill bg-secondary text-white">Inactive</span>
+                                            @endif
+                                        </td>
                                     @elseif($tab === 'staff')
                                         <td class="ps-4 fw-bold text-dark">{{ $item->name }}</td>
                                         <td>{{ $item->email }}</td>
@@ -98,7 +126,14 @@
                                         <td>{{ $item->stock }}</td>
                                     @endif
                                     <td class="small text-muted">
-                                        {{ $item->deleted_at->format('M d, Y • h:i A') }}
+                                        @if($item->trashed())
+                                            {{-- Show actual deletion time if soft-deleted --}}
+                                            {{ $item->deleted_at->format('M d, Y • h:i A') }}
+                                        @else
+                                            {{-- Show last status change time for Deceased/Inactive --}}
+                                            <span class="text-secondary"></span>
+                                            {{ $item->updated_at->format('M d, Y • h:i A') }}
+                                        @endif
                                     </td>
                                     <td class="text-end pe-4">
                                         <div class="btn-group shadow-sm rounded-pill overflow-hidden">
@@ -109,7 +144,8 @@
                                             <form action="{{ $restoreRoute }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <button class="btn btn-sm btn-success px-3 border-0 rounded-0">
-                                                    <i data-lucide="rotate-ccw" class="size-14 me-1"></i> Restore
+                                                    <i data-lucide="rotate-ccw" class="size-14 me-1"></i>
+                                                    {{ $item->trashed() ? 'Restore' : 'Reactivate' }}
                                                 </button>
                                             </form>
                                             <form action="{{ $deleteRoute }}" method="POST" class="d-inline"

@@ -13,6 +13,7 @@ class VaccineInventory extends Model
     protected $fillable = [
         'name',
         'batch_no',
+        'received_date',
         'description',
         'stock',
         'expiry_date',

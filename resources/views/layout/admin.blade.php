@@ -11,10 +11,30 @@
     <link href="{{ asset('assets/sass/style.css') }}" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css" rel="stylesheet">
 
     <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/newicon.png') }}">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+
+    <style>
+        .grayscale {
+            filter: grayscale(100%);
+            transition: filter 0.3s ease;
+        }
+
+        .tiny-badge {
+            font-size: 8px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            padding: 2px 6px;
+        }
+
+        .grayscale:hover {
+            filter: grayscale(0%);
+        }
+    </style>
 </head>
 
 <body>
@@ -178,81 +198,75 @@
                     showConfirmButton: true
                 });
             @endif
+
+            @if(session('status_changed') && session('status_changed')['type'] === 'DECEASED')
+                Swal.fire({
+                    title: 'In Loving Memory',
+                    text: 'Pet record for {{ session('status_changed')['pet_name'] }} has been updated to DECEASED status. This record is now archived.',
+                    icon: 'info',
+                    iconColor: '#2c3e50',
+                    confirmButtonText: 'Understood',
+                    confirmButtonColor: '#2c3e50',
+                    background: '#f8f9fa',
+                    customClass: {
+                        popup: 'rounded-4 border-0 shadow-lg',
+                        title: 'fw-bold text-dark',
+                        confirmButton: 'rounded-pill px-5'
+                    }
+                });
+            @endif
         });
 
         $(document).ready(function () {
-            // Global Delete Confirmation
-            $(document).on('submit', 'form', function (e) {
-                const $form = $(this);
-                const $submitBtn = $form.find('button[type="submit"]');
-                const $modal = $form.closest('.modal');
-                let modalInstance = null;
+        // Global Form Submission Handler
+        $(document).on('submit', 'form', function (e) {
+            const $form = $(this);
 
-                if ($modal.length && typeof bootstrap !== 'undefined') {
-                    modalInstance = bootstrap.Modal.getInstance($modal[0]);
-                }
+            // 1. If we already confirmed this specific form, let it submit
+            if ($form.data('confirmed')) return true;
 
-                function handleConfirmation(title, text, confirmText) {
-                    if ($form.data('confirmed')) return true;
-                    e.preventDefault();
+            const $submitBtn = $form.find('button[type="submit"]');
+            const $statusSelect = $form.find('select[name="status"]');
 
-                    Swal.fire({
-                        title: title,
-                        text: text,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: confirmText,
-                        cancelButtonText: 'Cancel',
-                        customClass: {
-                            popup: 'rounded-4 border-0',
-                            confirmButton: 'rounded-pill px-4',
-                            cancelButton: 'rounded-pill px-4'
-                        }
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            if (modalInstance) modalInstance.hide();
-                            $form.data('confirmed', true).submit();
-                        }
-                    });
-                }
+            // Check action types
+            const isDeleteAction = $form.find('input[name="_method"][value="DELETE"]').length > 0 ||
+                                $submitBtn.text().trim().toLowerCase().includes('delete');
+            const isDeceasedStatus = $statusSelect.length && $statusSelect.val() === 'DECEASED';
 
-                // Check if it's a delete form
-                if ($form.find('input[name="_method"][value="DELETE"]').length > 0 || $submitBtn.text().trim().toLowerCase().includes('delete')) {
-                    // Skip confirmation if already in archive or performing a restore/recover action
-                    const isArchivePath = window.location.search.includes('view=archived') || window.location.pathname.includes('archive');
+            // --- LOGIC FOR CUSTOM MODALS ---
+            if (isDeleteAction && $form.closest('[id^="delete"]').length > 0) {
+                return true;
+            }
 
-                    if (isArchivePath) {
-                        return true;
+            // 2. Handle SweetAlert for "DECEASED" status (Edit Modal)
+            if (isDeceasedStatus) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Confirm Deceased Status',
+                    text: "Marking this pet as DECEASED will archive the record. This is a solemn action.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2c3e50',
+                    confirmButtonText: 'Yes, confirm DECEASED',
+                    cancelButtonText: 'Cancel',
+                    customClass: { popup: 'rounded-4 border-0', confirmButton: 'rounded-pill px-4', cancelButton: 'rounded-pill px-4' }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $form.data('confirmed', true);
+                        $form[0].submit();
                     }
+                });
+                return;
+            }
 
-                    handleConfirmation(
-                        'Are you sure?',
-                        "This will move the record to the Archive. You can restore it later or delete it permanently.",
-                        'Yes, delete it!'
-                    );
-                }
-                // Check for Pet Status change to DECEASED in Edit Pet Modal
-                else {
-                    const $statusSelect = $form.find('select[name="status"]');
-                    if ($statusSelect.length && $statusSelect.val() === 'DECEASED') {
-                        handleConfirmation(
-                            'Confirm Deceased Status',
-                            "Are you sure? This will update the pet's status across all dashboards.",
-                            'Yes, confirm DECEASED'
-                        );
-                    } else {
-                        // For all other forms inside a modal, hide the modal on click so the success/reload is clean
-                        if (modalInstance) {
-                            $form.on('submit', function () {
-                                modalInstance.hide();
-                            });
-                        }
-                    }
-                }
-            });
+            // 3. Auto-close modals for all other successful clicks
+            const $modal = $form.closest('.modal');
+            if ($modal.length && typeof bootstrap !== 'undefined') {
+                const modalInstance = bootstrap.Modal.getInstance($modal[0]);
+                if (modalInstance) modalInstance.hide();
+            }
         });
+    });
     </script>
     @include('partials._chat_widget')
 </body>

@@ -125,7 +125,7 @@
                                     <th>Pet / Owner</th>
                                     <th>Service</th>
                                     <th>Time</th>
-                                    <th class="text-end">Action</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
