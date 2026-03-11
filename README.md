@@ -42,4 +42,3 @@
 - **Database**: MySQL / MariaDB
 - **Frontend**: Blade Components, Bootstrap 5, Vanilla CSS
 - **Tools**: FullCalendar.js, Lucide Icons, PHP QR Code Library
-
