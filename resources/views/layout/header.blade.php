@@ -1,3 +1,7 @@
+@php
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+@endphp
 <header class="bg-white shadow-sm px-4 py-3 d-flex justify-content-between align-items-center sticky-top"
         style="z-index: 1045;">
     {{-- LEFT SIDE --}}
@@ -26,22 +30,22 @@
 
         <div class="text-end me-3 d-none d-sm-block">
             <p class="fw-bold mb-0 small text-dark" style="line-height:1.2;">
-                {{ Auth::user()->name }}
+                {{ $user->name }}
             </p>
             <p class="text-primary mb-0 small text-uppercase fw-bold"
                style="font-size:10px; letter-spacing:0.5px;">
-                {{ Auth::user()->role }}
+                {{ $user->role }}
             </p>
         </div>
 
         <a href="{{
-            Auth::user()->role === 'admin' ? route('admin.profile') :
-            (Auth::user()->role === 'staff' ? route('staff.profile') : route('pet-owner.profile'))
+            strtolower($user->role) === 'admin' ? route('admin.profile') :
+            (strtolower($user->role) === 'staff' ? route('staff.profile') : route('pet-owner.profile'))
         }}" class="position-relative">
 
-            <img src="{{ Auth::user()->profile_image
-                ? asset('storage/' . Auth::user()->profile_image)
-                : 'https://ui-avatars.com/api/?name='.urlencode(Auth::user()->name).'&background=d35400&color=fff' }}"
+            <img src="{{ $user->profile_image
+                ? asset('storage/' . $user->profile_image)
+                : 'https://ui-avatars.com/api/?name='.urlencode($user->name).'&background=d35400&color=fff' }}"
                  class="rounded-circle border shadow-sm"
                  style="width:42px; height:42px; object-fit:cover;"
                  alt="Profile Picture">

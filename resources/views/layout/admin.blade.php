@@ -35,13 +35,26 @@
             filter: grayscale(0%);
         }
 
-        /* Force SweetAlert to appear in front of Bootstrap Modals */
+        /* Sidebar Scroll Styling */
+        .sidebar-nav-scroll {
+            overflow-y: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE and Edge */
+        }
+        .sidebar-nav-scroll::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
         .swal2-container {
             z-index: 999999 !important;
         }
     </style>
 </head>
 
+@php
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+@endphp
 <body>
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
     <div class="d-flex">
@@ -59,29 +72,29 @@
             <div class="sidebar-nav-scroll flex-grow-1 px-2">
                 <nav class="nav flex-column">
                     {{-- ADMIN LINKS --}}
-                    @if(Auth::check() && strtolower(Auth::user()->role) === 'admin')
+                    @if($user && strtolower($user->role) === 'admin')
                         <a href="{{ route('admin.dashboard') }}"
                             class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                             <i data-lucide="layout-grid"></i> Overview
                         </a>
                         <a href="{{ route('admin.pet-records') }}"
                             class="nav-link {{ request()->routeIs('admin.pet-records') ? 'active' : '' }}">
-                            <i data-lucide="shield-check"></i> Pet Database
+                            <i data-lucide="dog"></i> Pet Database
                         </a>
                         <a href="{{ route('admin.employees') }}"
-                            class="nav-link {{ request()->is('admin/employees*') ? 'active' : '' }}">
+                            class="nav-link {{ request()->routeIs('admin.employees') ? 'active' : '' }}">
                             <i data-lucide="users"></i> Staff
                         </a>
                         <a href="{{ route('admin.appointments') }}"
-                            class="nav-link {{ request()->is('admin/appointments*') ? 'active' : '' }}">
+                            class="nav-link {{ request()->routeIs('admin.appointments') ? 'active' : '' }}">
                             <i data-lucide="calendar"></i> Appointments
                         </a>
                         <a href="{{ route('admin.logs') }}"
-                            class="nav-link {{ request()->is('admin/logs*') ? 'active' : '' }}">
+                            class="nav-link {{ request()->routeIs('admin.logs') ? 'active' : '' }}">
                             <i data-lucide="history"></i> Logs
                         </a>
                         <a href="{{ route('admin.archive') }}"
-                            class="nav-link {{ request()->is('admin/archive*') ? 'active' : '' }}">
+                            class="nav-link {{ request()->routeIs('admin.archive') ? 'active' : '' }}">
                             <i data-lucide="archive"></i> Archive Center
                         </a>
                         <a href="{{ route('admin.vaccination-status') }}"
@@ -93,18 +106,18 @@
                             <i data-lucide="package"></i> Vaccine Inventory
                         </a>
                         <a href="{{ route('admin.profile') }}"
-                            class="nav-link {{ request()->is('admin/profile*') ? 'active' : '' }}">
+                            class="nav-link {{ request()->routeIs('admin.profile') ? 'active' : '' }}">
                             <i data-lucide="user-cog"></i> Profile
                         </a>
 
                         {{-- STAFF LINKS --}}
-                    @elseif(Auth::check() && strtolower(Auth::user()->role) === 'staff')
+                    @elseif($user && strtolower($user->role) === 'staff')
                         <a href="{{ route('staff.dashboard') }}"
                             class="nav-link {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}">
                             <i data-lucide="layout-dashboard"></i> Overview
                         </a>
                         <a href="{{ route('staff.appointments') }}"
-                            class="nav-link {{ request()->is('staff/appointments*') ? 'active' : '' }}">
+                            class="nav-link {{ request()->routeIs('staff.appointments') ? 'active' : '' }}">
                             <i data-lucide="calendar"></i> Appointments
                         </a>
                         <a href="{{ route('staff.pet-records') }}"
@@ -124,19 +137,19 @@
                             <i data-lucide="package"></i> Vaccine Inventory
                         </a>
                         <a href="{{ route('staff.profile') }}"
-                            class="nav-link {{ request()->is('staff/profile*') ? 'active' : '' }}">
+                            class="nav-link {{ request()->routeIs('staff.profile') ? 'active' : '' }}">
                             <i data-lucide="user-cog"></i> Profile
                         </a>
 
                         {{-- PET OWNER LINKS --}}
-                    @elseif(Auth::check() && strtolower(Auth::user()->role) === 'owner')
+                    @elseif($user && strtolower($user->role) === 'owner')
                         <a href="{{ route('pet-owner.dashboard') }}"
                             class="nav-link {{ request()->routeIs('pet-owner.dashboard') ? 'active' : '' }}">
                             <i data-lucide="layout-dashboard"></i> Overview
                         </a>
                         <a href="{{ route('pet-owner.appointments') }}"
                             class="nav-link {{ request()->routeIs('pet-owner.appointments') ? 'active' : '' }}">
-                            <i data-lucide="calendar"></i> Appointment
+                            <i data-lucide="calendar"></i> Appointments
                         </a>
                         <a href="{{ route('pet-owner.pet-records') }}"
                             class="nav-link {{ request()->routeIs('pet-owner.pet-records') ? 'active' : '' }}">
@@ -176,7 +189,6 @@
 
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
     <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ asset('assets/js/admin.js') }}"></script>
     @stack('scripts')
     <script>
