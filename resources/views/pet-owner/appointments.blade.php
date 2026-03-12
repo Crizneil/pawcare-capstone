@@ -164,67 +164,50 @@
                                 <h6 class="fw-bold mb-3 text-secondary border-bottom pb-2">Owner Information</h6>
                                 <div class="mb-3">
                                     <label class="small text-muted fw-bold mb-1">Name</label>
-                                    <input type="text" class="form-control bg-light" value="{{ auth()->user()->name }}"
-                                        readonly>
+                                    <input type="text" class="form-control bg-light" value="{{ auth()->user()->name }}" readonly>
                                 </div>
                                 <div class="mb-3">
                                     <label class="small text-muted fw-bold mb-1">Contact #</label>
-                                    <input type="text" class="form-control bg-light"
-                                        value="{{ auth()->user()->phone ?? 'N/A' }}" readonly>
+                                    <input type="text" class="form-control bg-light" value="{{ auth()->user()->phone ?? 'N/A' }}" readonly>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="small text-muted fw-bold mb-1">Email</label>
-                                    <input type="text" class="form-control bg-light" value="{{ auth()->user()->email }}"
-                                        readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="small text-muted fw-bold mb-1">Address <span class="text-danger">*</span></label>
-                                    <textarea class="form-control bg-light" name="address" required
-                                        rows="2" placeholder="Enter your full address here...">{{ auth()->user()->address ?? auth()->user()->location ?? '' }}</textarea>
+                                    <label class="small text-muted fw-bold mb-1">Address</label>
+                                    <textarea class="form-control bg-light" name="address" readonly rows="2">{{ auth()->user()->full_address }}</textarea>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <h6 class="fw-bold mb-3 text-secondary border-bottom pb-2">Pet Information</h6>
                                 <div class="mb-3">
-                                    <label class="small fw-bold text-muted mb-1">Pet Type / Name <span
-                                            class="text-danger">*</span></label>
+                                    <label class="small fw-bold text-muted mb-1">Pet Name <span class="text-danger">*</span></label>
                                     <select name="pet_id" class="form-select bg-light" required>
                                         <option value="">Please Select Pet here.</option>
-                                        @foreach(\App\Models\Pet::where('user_id', auth()->id())
-                                            ->whereIn('status', ['ACTIVE', 'Verified'])
-                                            ->get() as $pet)
-                                            <option value="{{ $pet->id }}">
-                                                {{ $pet->name }} ({{ ucfirst($pet->species) }})
-                                            </option>
+                                        @foreach(\App\Models\Pet::where('user_id', auth()->id())->whereIn('status', ['ACTIVE', 'Verified'])->get() as $pet)
+                                            <option value="{{ $pet->id }}">{{ $pet->name }} ({{ ucfirst($pet->species) }})</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="small fw-bold text-muted mb-1">Time <span
-                                            class="text-danger">*</span></label>
-                                    <select name="appointment_time" id="appointment_time_select"
-                                        class="form-select bg-light" required>
-                                        <option value="">Select Time</option>
-                                        <!-- Options injected via JS based on availability -->
-                                    </select>
-                                </div>
-                                <div class="mb-4">
-                                    <label class="small fw-bold text-muted mb-1">Service(s) <span
-                                            class="text-danger">*</span></label>
-                                    <select name="service_type" class="form-select bg-light" required>
+                                    <label class="small fw-bold text-muted mb-1">Service(s) <span class="text-danger">*</span></label>
+                                    {{-- Updated Service List --}}
+                                    <select id="service_type_select" name="service_type" class="form-select bg-light" required>
                                         <option value="">Please Select Service(s) Here.</option>
                                         <option value="vaccination">Vaccination</option>
-                                        <option value="checkup">General Checkup</option>
-                                        <option value="consultation">Medical Consultation</option>
                                         <option value="deworming">Deworming</option>
+                                        <option value="check-up">Check-up</option>
+                                        <option value="kapon">Kapon</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="small fw-bold text-muted mb-1">Time Slot <span class="text-danger">*</span></label>
+                                    <select name="appointment_time" id="appointment_time_select" class="form-select bg-light" required>
+                                        <option value="">Select Time</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                     <div class="modal-footer border-top p-3 bg-light d-flex justify-content-end gap-2">
-                        <button type="submit" class="btn btn-primary px-4 fw-bold" id="saveAppointmentBtn">Save</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-bold" id="saveAppointmentBtn">Save Appointment</button>
                         <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </form>
@@ -232,9 +215,8 @@
         </div>
     </div>
 @endsection
-
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 @push('scripts')
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
         /* --- Modern FullCalendar Aesthetics --- */
         #userCalendar {
@@ -397,227 +379,163 @@
         }
     </style>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', async function () {
-            var calendarEl = document.getElementById('userCalendar');
-            var appointmentModal = new bootstrap.Modal(document.getElementById('setAppointmentModal'));
-            var scheduleDisplay = document.getElementById('appointmentScheduleDisplay');
-            var dateInput = document.getElementById('appointment_date_input');
-            var timeSelect = document.getElementById('appointment_time_select');
+<script>
+   document.addEventListener('DOMContentLoaded', async function () {
+    var calendarEl = document.getElementById('userCalendar');
+    var appointmentModal = new bootstrap.Modal(document.getElementById('setAppointmentModal'));
+    var scheduleDisplay = document.getElementById('appointmentScheduleDisplay');
+    var dateInput = document.getElementById('appointment_date_input');
+    var timeSelect = document.getElementById('appointment_time_select');
+    var serviceSelect = document.getElementById('service_type_select');
 
-            // Available times template - strictly defined clinic blocks
-            const PREDEFINED_TIMES = [
-                { label: "8:00 AM - 9:00 AM", value: "08:00" },
-                { label: "9:00 AM - 10:00 AM", value: "09:00" },
-                { label: "10:00 AM - 11:00 AM", value: "10:00" },
-                { label: "11:00 AM - 12:00 PM (Final Hour for Morning Session)", value: "11:00" },
-                { label: "1:00 PM - 2:00 PM", value: "13:00" },
-                { label: "2:00 PM - 3:00 PM", value: "14:00" },
-                { label: "3:00 PM - 4:00 PM", value: "15:00" }
-            ];
+    const PREDEFINED_TIMES = [
+        { label: "8:00 AM - 8:30 AM", value: "08:00" },
+        { label: "8:30 AM - 9:00 AM", value: "08:30" },
+        { label: "9:00 AM - 9:30 AM", value: "09:00" },
+        { label: "9:30 AM - 10:00 AM", value: "09:30" },
+        { label: "10:00 AM - 10:30 AM", value: "10:00" },
+        { label: "10:30 AM - 11:00 AM", value: "10:30" },
+        { label: "11:00 AM - 11:30 AM", value: "11:00" },
+        { label: "11:30 AM - 12:00 PM (Morning Cut-off)", value: "11:30" },
+        { label: "1:00 PM - 1:30 PM", value: "13:00" },
+        { label: "1:30 PM - 2:00 PM", value: "13:30" },
+        { label: "2:00 PM - 2:30 PM", value: "14:00" },
+        { label: "2:30 PM - 3:00 PM", value: "14:30" },
+        { label: "3:00 PM - 3:30 PM", value: "15:00" },
+        { label: "3:30 PM - 4:00 PM", value: "15:30" },
+        { label: "4:00 PM - 4:30 PM", value: "16:00" },
+        { label: "4:30 PM - 5:00 PM", value: "16:30" }
+    ];
 
-            // Pre-compute the 24h versions of the predefined slots for easy comparison
-            const PREDEFINED_TIMES_24 = PREDEFINED_TIMES.map(t => t.value);
+    let availabilityData = {};
+    let ownerBookedDates = []; // Now expected to be an array of objects per date
 
-            let availabilityData = {};
-            let ownerBookedDates = [];
-            let maxCapacity = 10;
+    const formatLocalToISODate = (dateObj) => {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
 
-            // Ensures +08:00 timezones map accurately to calendar dates and prevents `.toISOString()` shifting dates backwards by a day.
-            const formatLocalToISODate = (dateObj) => {
-                const year = dateObj.getFullYear();
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const day = String(dateObj.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
+    async function fetchAvailability(startStr, endStr) {
+        try {
+            const res = await fetch(`{{ route('pet-owner.api.available-slots') }}?start=${startStr}&end=${endStr}`);
+            const data = await res.json();
+            availabilityData = data.booked_slots || {};
+            ownerBookedDates = data.owner_booked_dates || {};
+        } catch (err) {
+            console.error("Failed to fetch slots", err);
+        }
+    }
 
-            // Fetch availability first before rendering calendar
-            async function fetchAvailability(startStr, endStr) {
-                try {
-                    const res = await fetch(`{{ route('pet-owner.api.available-slots') }}?start=${startStr}&end=${endStr}`);
-                    const data = await res.json();
-                    availabilityData = data.booked_slots || {};
-                    ownerBookedDates = data.owner_booked_dates || [];
-                    maxCapacity = data.max_capacity_per_day || 10;
-                } catch (err) {
-                    console.error("Failed to fetch slots", err);
+    function updateAvailableTimes() {
+        const selectedDate = dateInput.value;
+        const selectedService = serviceSelect.value;
+        const bookedTimes = availabilityData[selectedDate] || [];
+
+        timeSelect.innerHTML = '<option value="">Select Time</option>';
+
+        PREDEFINED_TIMES.forEach((timeObj, index) => {
+            let opt = document.createElement('option');
+            let isUnavailable = bookedTimes.includes(timeObj.value);
+
+            // Logic for Kapon (Needs current slot AND the next slot free)
+            if (selectedService === 'kapon') {
+                const nextTimeObj = PREDEFINED_TIMES[index + 1];
+
+                // Cannot book Kapon if it's the last slot of the morning/afternoon session
+                const isEndOfSession = (timeObj.value === "11:30" || timeObj.value === "16:30");
+
+                if (isEndOfSession || !nextTimeObj || bookedTimes.includes(nextTimeObj.value)) {
+                    isUnavailable = true;
                 }
             }
 
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                headerToolbar: {
-                    left: 'today prev,next',
-                    center: 'title',
-                    right: '' // Just month view per screenshot
-                },
-                height: 'auto',
-                datesSet: async function (info) {
-                    // When the calendar changes month, fetch data then force rerender
-                    await fetchAvailability(info.startStr.split('T')[0], info.endStr.split('T')[0]);
-
-                    // Simple hack to trigger dayCellDidMount again without reloading the whole object
-                    let currentEvents = calendar.getEvents();
-                    calendar.removeAllEvents();
-
-                    // Add dummy background event to trigger view update, we handle UI in dayCellDidMount
-                    calendar.addEvent({
-                        title: 'render',
-                        start: info.startStr,
-                        display: 'none'
-                    });
-                },
-                dayCellDidMount: function (info) {
-                    const dateStr = formatLocalToISODate(info.date);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-
-                    // Grab potentially stored owner status payload
-                    const ownerBookedInfo = ownerBookedDates[dateStr];
-                    const isOwnerBooked = !!ownerBookedInfo;
-                    const ownerStatus = ownerBookedInfo ? ownerBookedInfo.status : null;
-
-                    // 0 = Sunday, 6 = Saturday
-                    const dayOfWeek = info.date.getDay();
-                    const isClosedDay = (dayOfWeek === 0 || dayOfWeek === 6);
-
-                    if (info.date < today) {
-                        info.el.classList.add('fc-day-passed');
-                        return;
-                    }
-
-                    if (isClosedDay) {
-                        info.el.classList.add('fc-day-closed');
-
-                        // Clear previous indicators if re-mounted
-                        let existInd = info.el.querySelector('.availability-indicator');
-                        if (existInd) existInd.remove();
-
-                        const indicator = document.createElement('div');
-                        indicator.className = 'availability-indicator availability-full';
-                        indicator.innerText = "Closed";
-                        info.el.querySelector('.fc-daygrid-day-frame').appendChild(indicator);
-                        return;
-                    }
-
-                    const bookedTimesRaw = availabilityData[dateStr] || [];
-                    // Only consider bookings that fall within our exact defined clinic slots
-                    const bookedTimes = bookedTimesRaw.filter(t => PREDEFINED_TIMES_24.includes(t));
-                    const count = bookedTimes.length;
-
-                    // Clear previous indicators if re-mounted
-                    let existInd = info.el.querySelector('.availability-indicator');
-                    if (existInd) existInd.remove();
-
-                    const indicator = document.createElement('div');
-                    indicator.className = 'availability-indicator';
-
-                    const isFullyBooked = (count >= maxCapacity || count >= PREDEFINED_TIMES.length);
-
-                    if (isOwnerBooked) {
-                        if (ownerStatus === 'completed' || ownerStatus === 'done') {
-                            info.el.classList.add('fc-day-available'); 
-                            indicator.style.backgroundColor = '#10b981'; // Green
-                            indicator.innerText = "Visit Done";
-                        } else {
-                            info.el.classList.add('fc-day-full');
-                            indicator.classList.add('availability-full');
-                            indicator.innerText = "You Already Booked";
-                        }
-                    } else if (isFullyBooked) {
-                        info.el.classList.add('fc-day-full');
-                        indicator.classList.add('availability-full');
-                        indicator.innerText = "Fully Booked";
-                    } else if (count === 0) {
-                        // No bookings yet: all slots free (GREEN)
-                        info.el.classList.add('fc-day-available');
-                        indicator.innerText = "All Slots Free";
-                    } else {
-                        // Some bookings but not full: still available (YELLOW)
-                        info.el.classList.add('fc-day-limited');
-                        indicator.style.backgroundColor = '#f4b000'; // yellow pill
-                        indicator.innerText = "Limited Slots";
-                    }
-
-                    info.el.querySelector('.fc-daygrid-day-frame').appendChild(indicator);
-                },
-                dateClick: function (info) {
-                    const dateStr = info.dateStr;
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-
-                    // Grab potentially stored owner status payload
-                    const ownerBookedInfo = ownerBookedDates[dateStr];
-                    const isOwnerBooked = !!ownerBookedInfo;
-                    const ownerStatus = ownerBookedInfo ? ownerBookedInfo.status : null;
-
-                    // If this owner already has an appointment on this day, trigger receipt or do nothing
-                    if (isOwnerBooked) {
-                        if (ownerStatus === 'completed' || ownerStatus === 'done') {
-                            const modalId = '#viewResultModal' + ownerBookedInfo.id;
-                            const receiptModalEl = document.querySelector(modalId);
-                            if (receiptModalEl) {
-                                const receiptModal = new bootstrap.Modal(receiptModalEl);
-                                receiptModal.show();
-                            }
-                        }
-                        return; // Always prevent opening the "book" modal if they have a booking
-                    }
-
-                    // 0 = Sunday, 6 = Saturday
-                    const dayOfWeek = info.date.getDay();
-                    const isClosedDay = (dayOfWeek === 0 || dayOfWeek === 6);
-
-                    // If not viewing a receipt, block past dates and closed days from booking
-                    if (info.date < today || isClosedDay) return;
-
-                    const bookedTimesRaw = availabilityData[dateStr] || [];
-                    const bookedTimes = bookedTimesRaw.filter(t => PREDEFINED_TIMES_24.includes(t));
-                    if (bookedTimes.length >= maxCapacity || bookedTimes.length >= PREDEFINED_TIMES.length) {
-                        return; // Ignore fully booked days
-                    }
-
-                    // Set Modal UI
-                    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-                    scheduleDisplay.innerText = info.date.toLocaleDateString('default', options);
-                    dateInput.value = dateStr;
-
-                    // Populate time dropdown dynamically
-                    timeSelect.innerHTML = '<option value=\"\">Select Time</option>';
-                    PREDEFINED_TIMES.forEach(timeObj => {
-                        const time24 = timeObj.value;
-                        const timeLabel = timeObj.label;
-                        let opt = document.createElement('option');
-
-                        // If this specific time is already booked, show it as disabled/gray
-                        if (bookedTimes.includes(time24)) {
-                            opt.disabled = true;
-                            opt.value = '';
-                            opt.innerText = `${timeLabel} (Taken)`;
-                            opt.style.color = '#6c757d';
-                            opt.style.backgroundColor = '#f8f9fa';
-                        } else {
-                            opt.value = time24;
-                            opt.innerText = timeLabel;
-                        }
-
-                        timeSelect.appendChild(opt);
-                    });
-
-                    // Open Modal
-                    appointmentModal.show();
-                }
-            });
-
-            // Force initial render immediately so cell mounting works on load
-            const initialStart = new Date();
-            initialStart.setDate(1); // load at least this month
-            
-            const startFormat = formatLocalToISODate(initialStart);
-            const endFormat = formatLocalToISODate(new Date(initialStart.getFullYear(), initialStart.getMonth() + 1, 0));
-            
-            await fetchAvailability(startFormat, endFormat);
-            calendar.render();
+            if (isUnavailable) {
+                opt.disabled = true;
+                opt.innerText = `${timeObj.label} (Unavailable)`;
+            } else {
+                opt.value = timeObj.value;
+                opt.innerText = (selectedService === 'kapon') ? `${timeObj.label}` : timeObj.label;
+            }
+            timeSelect.appendChild(opt);
         });
-    </script>
+    }
+
+    // Refresh times when service type changes
+    serviceSelect.addEventListener('change', updateAvailableTimes);
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: { left: 'today prev,next', center: 'title', right: '' },
+        height: 'auto',
+        datesSet: async function (info) {
+            await fetchAvailability(info.startStr.split('T')[0], info.endStr.split('T')[0]);
+            calendar.render();
+        },
+        dayCellDidMount: function (info) {
+            const dateStr = formatLocalToISODate(info.date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const dayOfWeek = info.date.getDay();
+            // CLOSED: Friday (5), Saturday (6), Sunday (0)
+            const isClosedDay = (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6);
+
+            const ownerAppointments = ownerBookedDates[dateStr] || [];
+            const isLimitReached = ownerAppointments.length >= 2;
+
+            if (info.date < today) {
+                info.el.classList.add('fc-day-passed');
+                return;
+            }
+
+            const indicator = document.createElement('div');
+            indicator.className = 'availability-indicator';
+
+            if (isClosedDay) {
+                info.el.classList.add('fc-day-closed');
+                indicator.classList.add('availability-full');
+                indicator.innerText = "Closed";
+            } else if (isLimitReached) {
+                info.el.classList.add('fc-day-full');
+                indicator.classList.add('availability-full');
+                indicator.innerText = "Daily Limit Met";
+            } else {
+                const count = (availabilityData[dateStr] || []).length;
+                if (count >= 16) {
+                    info.el.classList.add('fc-day-full');
+                    indicator.classList.add('availability-full');
+                    indicator.innerText = "Fully Booked";
+                } else {
+                    info.el.classList.add('fc-day-available');
+                    indicator.innerText = count === 0 ? "All Slots Free" : "Slots Available";
+                }
+            }
+            info.el.querySelector('.fc-daygrid-day-frame').appendChild(indicator);
+        },
+        dateClick: function (info) {
+            const dateStr = info.dateStr;
+            const dayOfWeek = info.date.getDay();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Block Closed Days (Fri-Sun) and Limit of 2
+            if (info.date < today || [0, 5, 6].includes(dayOfWeek)) return;
+            if ((ownerBookedDates[dateStr] || []).length >= 2) {
+                alert("You have reached the maximum of 2 appointments for this day.");
+                return;
+            }
+
+            dateInput.value = dateStr;
+            scheduleDisplay.innerText = info.date.toLocaleDateString('default', { year: 'numeric', month: 'long', day: 'numeric' });
+            serviceSelect.value = ""; // Reset service to force user selection
+            timeSelect.innerHTML = '<option value="">Please select a service first</option>';
+            appointmentModal.show();
+        }
+    });
+
+    calendar.render();
+});
+</script>
 @endpush

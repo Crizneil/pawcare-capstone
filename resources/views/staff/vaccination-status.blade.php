@@ -49,105 +49,105 @@
                     </thead>
                     <tbody>
                         @forelse($pets as $pet)
-                        @php $vax = $pet->latestVaccination; @endphp
-                        <tr>
-                            {{-- Added data-label for mobile card labels --}}
-                            <td class="ps-4" data-label="Pet">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-blue-light rounded-circle p-2 me-3 text-primary text-center d-none d-md-block" style="width:40px; height:40px;">
-                                        <i data-lucide="dog" style="width:20px;"></i>
+                            @php
+                                $vax = $pet->latestVaccination;
+                                // Get the single most recent appointment
+                                $latestApt = $pet->appointments->sortByDesc('appointment_date')->first();
+                                $aptStatus = strtolower($latestApt->status ?? '');
+
+                                // SECURITY CHECK: Is the appointment today?
+                                $isAppointedToday = $latestApt && \Carbon\Carbon::parse($latestApt->appointment_date)->isToday();
+
+                                // Only allow logging if the pet is "Checked-In" or "Approved" TODAY
+                                $canLogShot = $isAppointedToday && in_array($aptStatus, ['checked-in', 'approved']);
+                            @endphp
+
+                            {{-- Only show the row if the pet has an appointment today --}}
+                            @if($isAppointedToday)
+                            <tr>
+                                <td class="ps-4" data-label="Pet">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-blue-light rounded-circle p-2 me-3 text-primary text-center d-none d-md-block" style="width:40px; height:40px;">
+                                            <i data-lucide="dog" style="width:20px;"></i>
+                                        </div>
+                                        <div class="text-end-mobile">
+                                            <div class="fw-bold text-dark">{{ $pet->name }}</div>
+                                            @if($aptStatus == 'checked-in')
+                                                <span class="badge bg-soft-warning text-warning" style="font-size: 0.65rem;">READY FOR SHOT</span>
+                                            @elseif(in_array($aptStatus, ['done', 'completed']))
+                                                <span class="badge bg-soft-success text-success" style="font-size: 0.65rem;">TREATMENT COMPLETED</span>
+                                            @endif
+                                        </div>
                                     </div>
-                                    <div class="text-end-mobile"> {{-- Helper for mobile alignment --}}
-                                        <div class="fw-bold text-dark">{{ $pet->name }}</div>
+                                </td>
+
+                                <td data-label="Owner">
+                                    @if($pet->user)
+                                        <div class="fw-medium text-dark">{{ $pet->user->name }}</div>
+                                        <small class="text-muted">{{ $pet->user->phone }}</small>
+                                    @else
+                                        <div class="fw-medium text-dark">{{ $pet->owner }}</div>
+                                        <span class="badge bg-secondary-subtle text-secondary border small" style="font-size: 0.7rem;">Walk-in Guest</span>
+                                    @endif
+                                </td>
+
+                                <td data-label="Vaccine">
+                                    @if($vax)
+                                        <span class="badge bg-info-subtle text-info border border-info px-3">
+                                            {{ $vax->vaccine_name }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted small italic">No History</span>
+                                    @endif
+                                </td>
+
+                                <td data-label="Admin By">
+                                    <div class="small">
+                                        {{ $vax->staff->name ?? 'System' }}
+                                    </div>
+                                </td>
+
+                                <td class="small" data-label="Date Given">
+                                    {{ $vax ? \Carbon\Carbon::parse($vax->date_administered)->format('M d, Y') : '--' }}
+                                </td>
+
+                                <td data-label="Next Due">
+                                    @if($vax && $vax->next_due_date)
                                         @php
-                                            $latestApt = $pet->appointments->last();
-                                            $aptStatus = strtolower($latestApt->status ?? '');
+                                            $dueDate = \Carbon\Carbon::parse($vax->next_due_date);
+                                            $isOverdue = $dueDate->isPast() && !$dueDate->isToday();
                                         @endphp
+                                        <div class="small fw-bold {{ $isOverdue ? 'text-danger' : 'text-success' }}">
+                                            {{ $dueDate->format('M d, Y') }}
+                                        </div>
+                                    @else
+                                        <span class="text-muted small">--</span>
+                                    @endif
+                                </td>
 
-                                        @if($aptStatus == 'approved')
-                                            <span class="badge bg-soft-warning text-warning" style="font-size: 0.65rem;">READY FOR SHOT</span>
-                                        @elseif(in_array($aptStatus, ['done', 'completed']))
-                                            <span class="badge bg-soft-success text-success" style="font-size: 0.65rem;">TREATMENT COMPLETED</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </td>
-
-                            <td data-label="Owner">
-                                @if($pet->user)
-                                    <div class="fw-medium text-dark">{{ $pet->user->name }}</div>
-                                    <small class="text-muted">{{ $pet->user->phone }}</small>
-                                @else
-                                    <div class="fw-medium text-dark">{{ $pet->owner }}</div>
-                                    <span class="badge bg-secondary-subtle text-secondary border small" style="font-size: 0.7rem;">Walk-in Guest</span>
-                                @endif
-                            </td>
-
-                            <td data-label="Vaccine">
-                                @if($vax)
-                                    <span class="badge bg-info-subtle text-info border border-info px-3">
-                                        {{ $vax->vaccine_name }}
-                                    </span>
-                                @else
-                                    <span class="text-muted small italic">None</span>
-                                @endif
-                            </td>
-
-                            <td data-label="Admin By">
-                                <div class="small">
-                                    <i data-lucide="user-check" class="text-muted me-1 d-none d-md-inline" style="width:14px;"></i>
-                                    {{ $vax->staff->name ?? 'System' }}
-                                </div>
-                            </td>
-
-                            <td class="small" data-label="Date Given">
-                                {{ $vax ? \Carbon\Carbon::parse($vax->date_administered)->format('M d, Y') : '--' }}
-                            </td>
-
-                            <td data-label="Next Due">
-                                @if($vax && $vax->next_due_date)
-                                    @php
-                                        $dueDate = \Carbon\Carbon::parse($vax->next_due_date);
-                                        $today = \Carbon\Carbon::today();
-                                        $daysRemaining = $today->diffInDays($dueDate, false);
-
-                                        $isOverdue = $daysRemaining < 0;
-                                        $isDueSoon = $daysRemaining >= 0 && $daysRemaining <= 14;
-                                        $isUpToDate = $daysRemaining > 14;
-                                    @endphp
-
-                                    <div @class([
-                                        'small fw-bold d-inline-flex align-items-center',
-                                        'text-danger' => $isOverdue,
-                                        'text-warning' => $isDueSoon,
-                                        'text-success' => $isUpToDate,
-                                    ])>
-                                        {{ $dueDate->format('M d, Y') }}
-                                    </div>
-                                @else
-                                    <span class="text-muted small">--</span>
-                                @endif
-                            </td>
-
-                            {{-- This 'Actions' label is critical for the alignment fix --}}
-                            <td class="text-end pe-4" data-label="Actions">
-                                <button class="btn btn-sm btn-dark rounded-pill px-3 shadow-sm"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#updateVax{{ $pet->id }}">
-                                    <i data-lucide="plus-circle" class="me-1" style="width:14px;"></i> Log Shot
-                                </button>
-                            </td>
-                        </tr>
+                                <td class="text-end pe-4" data-label="Actions">
+                                    @if($canLogShot)
+                                        <button class="btn btn-sm btn-dark rounded-pill px-3 shadow-sm"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#updateVax{{ $pet->id }}">
+                                            <i data-lucide="plus-circle" class="me-1" style="width:14px;"></i> Log Shot
+                                        </button>
+                                    @else
+                                        <span class="badge bg-light text-muted border">Completed</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endif
                         @empty
-                        <tr>
-                            <td colspan="7" class="text-center py-5">
-                                <div class="text-muted">
-                                    <i data-lucide="clipboard-x" class="mb-3" style="width:48px; height:48px; opacity: 0.5;"></i>
-                                    <h5 class="fw-bold">No Authorized Patients Found</h5>
-                                    <p class="small">Only pets with <b>Approved Appointments</b> appear here.</p>
-                                </div>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <div class="text-muted">
+                                        <i data-lucide="calendar-x" class="mb-3" style="width:48px; height:48px; opacity: 0.5;"></i>
+                                        <h5 class="fw-bold">No Appointments Today</h5>
+                                        <p class="small">Only pets scheduled for today's date will appear in this tracker.</p>
+                                    </div>
+                                </td>
+                            </tr>
                         @endforelse
                     </tbody>
                 </table>

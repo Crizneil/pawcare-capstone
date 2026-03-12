@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->string('gender')->nullable();
             $table->string('role')->default('owner');
-            $table->string('house_number')->nullable();
+            $table->string('house_no')->nullable();
             $table->string('street')->nullable();
             $table->string('barangay')->nullable();
             $table->string('city')->nullable();

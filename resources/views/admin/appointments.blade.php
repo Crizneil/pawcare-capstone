@@ -10,10 +10,33 @@
                 <h2 class="fw-bold mb-0">Appointment Management</h2>
                 <p class="text-muted small">Schedule and manage pet healthcare visits.</p>
             </div>
-            <button class="btn btn-orange rounded-pill px-4 shadow-sm" data-bs-toggle="modal"
-                data-bs-target="#addAppointmentModal">
-                <i class="bi bi-plus-lg me-2"></i> New Appointment
-            </button>
+
+            <div class="d-flex gap-2">
+                <div class="dropdown">
+                    <button class="btn btn-outline-dark rounded-pill px-4 py-2 shadow-sm fw-bold dropdown-toggle" type="button" id="reportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-file-earmark-pdf me-1"></i> Generate Report
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" aria-labelledby="reportDropdown">
+                        <li><h6 class="dropdown-header">Select Timeframe</h6></li>
+                        <li>
+                            {{-- Added target="_blank" --}}
+                            <a class="dropdown-item py-2" href="{{ route('admin.reports.appointments', ['range' => 'daily']) }}" target="_blank">
+                                <i class="bi bi-calendar-event me-2 text-primary"></i> Daily Report
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2" href="{{ route('admin.reports.appointments', ['range' => 'weekly']) }}" target="_blank">
+                                <i class="bi bi-calendar-week me-2 text-success"></i> Weekly Report
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2" href="{{ route('admin.reports.appointments', ['range' => 'monthly']) }}" target="_blank">
+                                <i class="bi bi-calendar-month me-2 text-orange"></i> Monthly Report
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
         {{-- Stats Cards --}}
@@ -153,10 +176,8 @@
     {{-- Modal Fragments --}}
     @foreach($appointments as $appointment)
         @include('partials._reject_modal')
-        @include('partials._reschedule_modal')
         @include('partials._cancel_modal')
     @endforeach
-    @include('partials._add_appointment_modal')
 
     <!-- Event Details Modal dynamically populated by JS -->
     <div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-hidden="true">
@@ -305,38 +326,22 @@
     </style>
 
     <script>
-        // Helper to open the Reject modal with a professional SweetAlert2 confirmation
-        function openRejectModalWithConfirm(appointmentId) {
-            Swal.fire({
-                title: 'Are you sure?',
-                text: "You are about to reject this appointment. This will notify the owner.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, proceed to reject',
-                cancelButtonText: 'Go Back',
-                customClass: {
-                    popup: 'rounded-4 border-0 shadow-lg',
-                    confirmButton: 'rounded-pill px-4 fw-bold',
-                    cancelButton: 'rounded-pill px-4 fw-bold'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Hide the detail modal first
-                    const detailModalEl = document.getElementById('eventDetailsModal');
-                    const detailModal = bootstrap.Modal.getInstance(detailModalEl);
-                    if (detailModal) detailModal.hide();
+    function openRejectModalWithConfirm(appointmentId) {
+        // 1. Hide the FullCalendar detail modal first to prevent backdrop bugs
+        const detailModalEl = document.getElementById('eventDetailsModal');
+        const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+        if (detailModal) detailModal.hide();
 
-                    // Show the rejection reason modal
-                    const rejectModalEl = document.getElementById('rejectModal' + appointmentId);
-                    if (rejectModalEl) {
-                        const rejectModal = new bootstrap.Modal(rejectModalEl);
-                        rejectModal.show();
-                    }
-                }
-            });
+        // 2. Trigger your specific Blade modal from the partials
+        const rejectModalEl = document.getElementById('rejectModal' + appointmentId);
+
+        if (rejectModalEl) {
+            const rejectModal = new bootstrap.Modal(rejectModalEl);
+            rejectModal.show();
+        } else {
+            console.error("Modal not found: rejectModal" + appointmentId);
         }
+    }
 
         document.addEventListener('DOMContentLoaded', function () {
             var calendarEl = document.getElementById('masterCalendar');

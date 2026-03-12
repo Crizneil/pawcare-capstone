@@ -279,37 +279,45 @@ class AdminController extends Controller
     {
         // 1. Validate under the "One-Account Policy"
         $request->validate([
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'middle_initial' => 'nullable|string|max:2',
             'email' => 'required|email|unique:users',
-            'valid_id_number' => 'required|string|unique:users', // Enforce real ID uniqueness
-            'phone' => 'required|numeric|digits:11|unique:users', // Enforce unique mobile number
-            'address' => 'required|string',
+            'phone' => 'required|numeric|digits:11|unique:users',
+            'house_no' => 'required|string|max:255',
+            'street' => 'required|string|max:255',
+            'barangay' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'province' => 'required|string|max:255',
             'gender' => 'required|string|in:Male,Female',
         ], [
-            'email.unique' => 'An account with this email address already exists. Only one account is allowed per owner.',
-            'valid_id_number.unique' => 'This Valid ID Number is already registered to another owner.',
-            'phone.unique' => 'An account with this mobile number already exists. Only one account is allowed per owner.',
+            'email.unique' => 'An account with this email address already exists.',
+            'phone.unique' => 'An account with this mobile number already exists.',
         ]);
 
-        // 2. Generate a secure random password (e.g., 8 characters)
+        // 2. Generate a secure random password
         $rawPassword = Str::random(8);
 
         // 3. Create the Owner User
+        $fullName = trim($request->first_name . ' ' . ($request->middle_initial ? $request->middle_initial . ' ' : '') . $request->last_name);
+
         $user = User::create([
-            'name' => $request->name,
+            'name' => $fullName,
             'email' => $request->email,
-            'valid_id_number' => $request->valid_id_number,
             'password' => Hash::make($rawPassword),
             'phone' => $request->phone,
-            'address' => $request->address,
             'gender' => $request->gender,
             'role' => 'owner',
-            // Default generic values
-            'city' => 'City of Meycauayan',
-            'province' => 'Bulacan',
-            'house_number' => 'N/A',
-            'street' => 'N/A',
-            'barangay' => 'N/A',
+
+            // Granular Address Fields
+            'house_number' => $request->house_no,
+            'street' => $request->street,
+            'barangay' => $request->barangay,
+            'city' => $request->city,
+            'province' => $request->province,
+
+            // you can concatenate them like this:
+            'address' => "{$request->house_no} {$request->street}, {$request->barangay}, {$request->city}, {$request->province}",
         ]);
 
         // 4. Record Activity
@@ -318,15 +326,14 @@ class AdminController extends Controller
             'Admin successfully created a new owner account for: ' . $user->name
         );
 
-        // 5. Send Automated Welcome Email to the Owner
+        // 5. Send Automated Welcome Email
         try {
             Mail::to($user->email)->send(new WelcomeEmail($user, $rawPassword));
         } catch (\Exception $e) {
-            // Failsafe in case email fails to send (optional based on your environment)
-            return back()->with('error', 'Owner registered, but there was an issue sending the welcome email: ' . $e->getMessage());
+            return back()->with('error', 'Owner registered, but email failed: ' . $e->getMessage());
         }
 
-        return back()->with('success', 'New owner account successfully registered and Welcome Email sent!');
+        return back()->with('success', 'New owner account successfully registered!');
     }
 
     public function logs(Request $request)
@@ -422,19 +429,34 @@ class AdminController extends Controller
         return back()->with('success', 'All logs have been restored.');
     }
 
-    // --- EXISTING METHODS ---
-
-    public function petRecords(\Illuminate\Http\Request $request)
+    public function petRecords(Request $request)
     {
         $view = $request->input('view', 'active'); // 'active' or 'archived'
         $query = Pet::with('user');
 
-        if ($request->filled('pet_id')) {
-            $query->withTrashed()->where(function ($q) use ($request) {
-                $q->where('id', $request->pet_id)
-                    ->orWhere('pet_id', $request->pet_id);
+        // Combined ID and text search for better robustness
+        $petId = $request->input('pet_id');
+        $search = $request->input('general_search');
+
+        if ($petId) {
+            $query->withTrashed()->where(function ($q) use ($petId) {
+                $q->where('id', $petId)
+                    ->orWhere('pet_id', $petId);
             });
-        } else {
+        } elseif ($search) {
+            // If it looks like a Pet ID, try matching that first
+            if (str_starts_with(strtoupper($search), 'PC-') || str_starts_with(strtoupper($search), 'WALK-')) {
+                $query->withTrashed()->where('pet_id', 'like', "%{$search}%");
+            } else {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('breed', 'like', "%{$search}%")
+                        ->orWhere('owner', 'like', "%{$search}%");
+                });
+            }
+        }
+
+        if (!$petId && !$search) {
             if ($view === 'archived') {
                 $query->withTrashed()->where(function ($q) {
                     $q->whereIn('status', ['DECEASED', 'INACTIVE'])
@@ -444,15 +466,7 @@ class AdminController extends Controller
                 $query->notDeceased();
             }
 
-            // 2. Regular Text Search Match
-            if ($request->filled('general_search')) {
-                $search = $request->general_search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('breed', 'like', "%{$search}%")
-                        ->orWhere('owner', 'like', "%{$search}%");
-                });
-            }
+
         }
 
         $pets = $query->latest()->paginate(10)->appends($request->all());
@@ -482,9 +496,7 @@ class AdminController extends Controller
     }
     // --- ADD THESE METHODS FOR PET MANAGEMENT ---
 
-    /**
-     * Store a newly created pet record (Admin-Only)
-     */
+
     public function storePet(Request $request)
     {
         $request->validate([
@@ -496,7 +508,7 @@ class AdminController extends Controller
         ]);
 
         $year = date('Y');
-        $count = Pet::count() + 1;
+        $count = Pet::withTrashed()->count() + 1;
         $unique_id = 'PC-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
 
         $pet = Pet::create([
@@ -519,9 +531,7 @@ class AdminController extends Controller
         return back()->with('success', 'Pet successfully registered! Pet ID: ' . $unique_id);
     }
 
-    /**
-     * Update the specified pet record
-     */
+
     public function updatePet(Request $request, $id)
     {
         $request->validate([
@@ -534,11 +544,21 @@ class AdminController extends Controller
         // Store old name for logging
         $oldName = $pet->name;
 
+        $oldStatus = $pet->status;
+        $newStatus = $request->status ?? $pet->status;
+
         $pet->update([
             'name' => $request->name,
             'breed' => $request->breed,
-            'status' => $request->status ?? $pet->status, // Fallback if unmodified
+            'status' => $newStatus,
         ]);
+
+        if ($oldStatus !== 'DECEASED' && $newStatus === 'DECEASED') {
+            session()->flash('status_changed', [
+                'type' => 'DECEASED',
+                'pet_name' => $pet->name
+            ]);
+        }
 
         ActivityLog::record(
             'UPDATE',
@@ -548,9 +568,7 @@ class AdminController extends Controller
         return back()->with('success', 'Pet record updated successfully!');
     }
 
-    /**
-     * Remove the specified pet record
-     */
+
     public function destroyPet($id)
     {
         $pet = Pet::findOrFail($id);
@@ -591,7 +609,7 @@ class AdminController extends Controller
         );
 
         $year = date('Y');
-        $count = Pet::count() + 1;
+        $count = Pet::withTrashed()->count() + 1;
         $unique_id = 'PC-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
 
         Pet::create([
@@ -677,9 +695,7 @@ class AdminController extends Controller
         return back()->with('success', 'Staff member updated successfully!');
     }
 
-    /**
-     * Remove the specified staff member
-     */
+
     public function destroyStaff($id)
     {
         $staff = User::findOrFail($id);
@@ -776,7 +792,20 @@ class AdminController extends Controller
     public function updateVaccine(Request $request, $id)
     {
         $vaccine = VaccineInventory::findOrFail($id);
-        $vaccine->update($request->only(['stock', 'batch_no', 'expiry_date']));
+
+        // Only update the fields provided in the request
+        $vaccine->update($request->only([
+            'stock',
+            'batch_no',
+            'received_date', // Allow updating the arrival date
+            'expiry_date',
+            'low_stock_threshold'
+        ]));
+
+        ActivityLog::record(
+            'UPDATE_VACCINE',
+            "Updated inventory details for {$vaccine->name} (Batch: {$vaccine->batch_no})."
+        );
 
         return back()->with('success', "{$vaccine->name} inventory updated.");
     }
@@ -795,13 +824,19 @@ class AdminController extends Controller
             'batch_no' => 'required|string|unique:vaccine_inventories,batch_no',
             'stock' => 'required|integer|min:0',
             'low_stock_threshold' => 'required|integer',
-            'expiry_date' => 'required|date',
+            'received_date' => 'required|date', // Added validation for arrival date
+            'expiry_date' => 'required|date|after:received_date', // Ensures vaccine isn't expired on arrival
         ]);
 
-        // Set a default description based on the name if needed
-        $validated['description'] = $request->name . " inventory batch.";
+        // Set a default description based on the name if the user didn't provide one
+        $validated['description'] = $request->description ?? ($request->name . " inventory batch.");
 
         VaccineInventory::create($validated);
+
+        ActivityLog::record(
+            'CREATE_VACCINE',
+            "Admin added a new batch of {$request->name} (Batch: {$request->batch_no}) received on {$request->received_date}."
+        );
 
         return back()->with('success', 'New vaccine batch added to inventory!');
     }
@@ -812,9 +847,14 @@ class AdminController extends Controller
 
         $data = [];
         if ($tab === 'pets') {
-            $query = Pet::onlyTrashed()->with('user');
-            if ($search)
+            // Query both soft-deleted pets AND pets with inactive/deceased status
+            $query = Pet::withTrashed()->with('user')->where(function ($q) {
+                $q->onlyTrashed() // Records with deleted_at
+                ->orWhereIn('status', ['DECEASED', 'INACTIVE']); // Records with archived status
+            });
+            if ($search) {
                 $query->where('name', 'like', "%{$search}%");
+            }
             $data = $query->latest()->paginate(10);
         } elseif ($tab === 'staff') {
             $query = User::onlyTrashed()->where('role', 'staff');
@@ -833,15 +873,23 @@ class AdminController extends Controller
 
     public function restorePet($id)
     {
-        $pet = Pet::onlyTrashed()->findOrFail($id);
-        $pet->restore();
+        // Use withTrashed() so we can find BOTH soft-deleted and status-archived pets
+        $pet = Pet::withTrashed()->findOrFail($id);
+
+        if ($pet->trashed()) {
+            // Handle actual Soft Deletes
+            $pet->restore();
+        }
+
+        // This handles both restored pets and Deceased/Inactive pets
+        $pet->update(['status' => 'Verified']);
 
         ActivityLog::record(
             'RESTORE',
-            "Restored pet record for: " . $pet->name
+            "Restored pet record and updated status for: " . $pet->name
         );
 
-        return back()->with('success', "Pet record for {$pet->name} restored.");
+        return back()->with('success', "Pet record for {$pet->name} has been restored successfully.");
     }
 
     public function forceDeletePet($id)
@@ -885,8 +933,9 @@ class AdminController extends Controller
         return back()->with('success', "Staff account for {$name} deleted permanently.");
     }
 
-    public function restoreVaccine($id)
+   public function restoreVaccine($id)
     {
+        // Find the soft-deleted vaccine
         $vaccine = VaccineInventory::onlyTrashed()->findOrFail($id);
         $vaccine->restore();
 
@@ -895,21 +944,21 @@ class AdminController extends Controller
             "Restored vaccine record: " . $vaccine->name
         );
 
-        return back()->with('success', "Vaccine record for {$vaccine->name} restored.");
+        return back()->with('success', "Vaccine {$vaccine->name} has been restored to inventory.");
     }
 
     public function forceDeleteVaccine($id)
     {
-        $vaccine = VaccineInventory::onlyTrashed()->findOrFail($id);
+        $vaccine = VaccineInventory::withTrashed()->findOrFail($id);
         $name = $vaccine->name;
         $vaccine->forceDelete();
 
         ActivityLog::record(
             'PERMANENT_DELETE',
-            "Permanently deleted vaccine record: " . $name
+            "Permanently deleted vaccine record for: " . $name
         );
 
-        return back()->with('success', "Vaccine record for {$name} deleted permanently.");
+        return back()->with('success', "Vaccine {$name} deleted permanently.");
     }
 
     public function sendEmailReminder($appointment)

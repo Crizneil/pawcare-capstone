@@ -13,9 +13,15 @@
                         <input type="text" name="name" class="form-control" placeholder="Enter vaccine name..." required>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">BATCH NUMBER</label>
-                        <input type="text" name="batch_no" class="form-control" placeholder="e.g. ARB-2026-001" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold text-muted">BATCH NUMBER</label>
+                            <input type="text" name="batch_no" class="form-control" placeholder="e.g. ARB-2026-001" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold text-muted">DATE RECEIVED</label>
+                            <input type="date" name="received_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        </div>
                     </div>
 
                     <div class="row">

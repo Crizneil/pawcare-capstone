@@ -63,7 +63,7 @@
                                 <i class="fi flaticon-calendar-1 fs-4 me-3 mt-1" style="color: #ff6b6b;"></i>
                                 <div>
                                     <h5 class="fw-bold mb-1">Office Hours</h5>
-                                    <p class="mb-0 text-muted">Monday - Friday: 8:00 AM - 5:00 PM<br>Saturday & Sunday:
+                                    <p class="mb-0 text-muted">Monday - Thursday: 8:00 AM - 5:00 PM<br>Friday, Saturday & Sunday:
                                         Closed</p>
                                 </div>
                             </div>

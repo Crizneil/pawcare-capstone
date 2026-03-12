@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name'); // Name of the vaccine (e.g., Anti-Rabies)
             $table->string('batch_no')->nullable();
+            $table->date('received_date')->nullable();
             $table->text('description')->nullable();
             $table->integer('stock')->default(0); // Current quantity in the fridge
             $table->date('expiry_date')->nullable(); // When the current batch expires

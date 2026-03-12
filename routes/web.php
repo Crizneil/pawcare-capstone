@@ -106,12 +106,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::delete('/pets/{id}/force-delete', [AdminController::class, 'forceDeletePet'])->name('pets.force-delete');
     Route::post('/staff/{id}/restore', [AdminController::class, 'restoreStaff'])->name('staff.restore');
     Route::delete('/staff/{id}/force-delete', [AdminController::class, 'forceDeleteStaff'])->name('staff.force-delete');
-    Route::post('/vaccine/{id}/restore', [AdminController::class, 'restoreVaccine'])->name('vaccine.restore');
-    Route::delete('/vaccine/{id}/force-delete', [AdminController::class, 'forceDeleteVaccine'])->name('vaccine.force-delete');
+    Route::post('/vaccine/{id}/restore', [AdminController::class, 'restoreVaccine'])->name('vaccines.restore');
+    Route::delete('/vaccine/{id}/force-delete', [AdminController::class, 'forceDeleteVaccine'])->name('vaccines.force-delete');
 
     // Reports & Analytics Routes
     Route::get('/reports/appointments', [AdminReportController::class, 'appointmentReport'])->name('reports.appointments');
     Route::get('/reports/inventory', [AdminReportController::class, 'inventoryReport'])->name('reports.inventory');
+    Route::get('/reports/vaccine-generate', [AdminReportController::class, 'generateVaccineReport'])->name('reports.vaccine');
 
     // Calendar API Endpoints
     Route::get('/api/appointments', [AdminController::class, 'getAppointmentsApi'])->name('api.appointments');
@@ -125,14 +126,21 @@ Route::prefix('staff')->name('staff.')->middleware(['auth', 'role:staff'])->grou
 
     // Appointments
     Route::get('/appointments', [StaffController::class, 'appointments'])->name('appointments');
-    Route::post('/appointments/{id}/status/{status}', [StaffController::class, 'updateAppointmentStatus'])->name('appointments.update');
+    Route::post('/appointments/{id}/status', [StaffController::class, 'updateAppointmentStatus'])->name('appointments.update');
     Route::post('/appointments/store', [StaffController::class, 'storeAppointment'])->name('appointments.store');
+    Route::post('/appointments/{id}/reschedule', [StaffController::class, 'reschedule'])->name('appointments.reschedule');
+    Route::get('/appointments/booked-slots', [StaffController::class, 'getBookedSlots'])->name('appointments.slots');
 
     // Pet Records & Vaccination
     Route::get('/pet-records', [StaffController::class, 'petRecords'])->name('pet-records');
     Route::get('/vaccination-status', [StaffController::class, 'vaccinationStatus'])->name('vaccination-status');
     Route::get('/vaccination-history', [StaffController::class, 'vaccinationHistory'])->name('vaccination-history');
     Route::post('/vaccination/store/{id}', [StaffController::class, 'updateVaccination'])->name('vaccination.store');
+
+    // Owner Profile
+    Route::get('/owner/{id}', [StaffController::class, 'ownerProfile'])->name('owner.profile');
+    Route::get('/owner-profile/{id}', [StaffController::class, 'ownerProfile'])->name('pet-owners');
+    Route::post('/owner/{id}/create-account', [StaffController::class, 'createAccount'])->name('owner.createAccount');
 
     // Inventory
     Route::get('/vaccine-inventory', [StaffController::class, 'vaccineInventory'])->name('vaccine-inventory');
@@ -156,6 +164,7 @@ Route::prefix('owner')->name('pet-owner.')->middleware(['auth'])->group(function
     // Profile page (route name: pet-owner.profile)
     Route::get('/profile', [PetController::class, 'profile'])->name('profile');
     Route::put('/profile/password', [PetController::class, 'updatePassword'])->name('password.update');
+    Route::put('/profile/update', [PetController::class, 'updateProfile'])->name('profile.update');
 
     // Appointment booking page (route name: pet-owner.appointments)
     Route::get('/appointments', [PetController::class, 'appointments'])->name('appointments');

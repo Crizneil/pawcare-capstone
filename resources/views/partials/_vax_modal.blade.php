@@ -3,7 +3,10 @@
         <div class="modal-content border-0 shadow rounded-4">
             <form action="{{ route('staff.vaccination.store', $pet->id) }}" method="POST">
                 @csrf
-                <input type="hidden" name="appointment_id" value="{{ request('apt_id') }}">
+                @php
+                    $currentApt = $pet->appointments->where('status', 'approved')->first();
+                @endphp
+                <input type="hidden" name="appointment_id" value="{{ $currentApt->id ?? '' }}">
                 <div class="modal-header border-0 p-4 pb-0">
                     <h5 class="fw-bold">New Vaccination: {{ $pet->name }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

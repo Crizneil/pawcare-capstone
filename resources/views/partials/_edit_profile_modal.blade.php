@@ -1,11 +1,13 @@
-<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="editProfileModal" tabindex="-1" role="dialog" aria-labelledby="editProfileModalLabel">
     <div class="modal-dialog modal-lg">
         <div class="modal-content" style="border-radius: 20px;">
             <div class="modal-header border-0 p-4 pb-0">
                 <h5 class="modal-title fw-bold">Update Profile Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('admin.profile.update') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ auth()->user()->role == 'admin' ? route('admin.profile.update') : route('pet-owner.profile.update') }}"
+                    method="POST"
+                    enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 <div class="modal-body p-4">

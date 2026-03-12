@@ -75,12 +75,20 @@
                                     </td>
 
                                     <td data-label="Owner">
-                                        @if($pet->user_id)
-                                            <div class="text-dark fw-bold">{{ $pet->user->name }}</div>
-                                            <small class="text-muted"><i class="bi bi-person-check"></i> Member</small>
+                                        @if($pet->user_id && $pet->user)
+                                            {{-- Only generate the route if user_id is NOT null --}}
+                                            <a href="{{ route('staff.pet-owners', ['id' => $pet->user_id]) }}" class="text-decoration-none">
+                                                <div class="text-dark fw-bold">{{ $pet->user->name }}</div>
+                                                <small class="text-muted">
+                                                    <i data-lucide="user-check" style="width: 12px; height: 12px;"></i> Member
+                                                </small>
+                                            </a>
                                         @else
-                                            <div class="text-secondary fw-bold">{{ $pet->owner }}</div>
-                                            <span class="badge bg-light text-secondary border small">Walk-in Client</span>
+                                            {{-- Fallback for walk-in clients or pets without a linked user account --}}
+                                            <div class="text-secondary fw-bold">{{ $pet->owner ?? 'Unknown Owner' }}</div>
+                                            <span class="badge bg-light text-secondary border small">
+                                                <i data-lucide="info" style="width: 12px; height: 12px;"></i> Walk-in Client
+                                            </span>
                                         @endif
                                     </td>
 

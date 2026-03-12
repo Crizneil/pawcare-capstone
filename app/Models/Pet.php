@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Carbon\Carbon;
 use App\Models\Appointment;
@@ -22,6 +24,13 @@ class Pet extends Model
         'birthday',
         'breed',
         'owner',
+        'owner_phone',
+        'owner_gender',
+        'house_no',
+        'street',
+        'barangay',
+        'city',
+        'province',
         'vaccine_type',
         'last_date',
         'next_date',

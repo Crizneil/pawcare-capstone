@@ -97,7 +97,7 @@
 
                             <div class="col-md-4">
                                 <label class="text-muted small text-uppercase fw-bold mb-1">House No. / Street</label>
-                                <p class="border-bottom pb-2 text-dark fw-bold">{{ auth()->user()->house_number }}
+                                <p class="border-bottom pb-2 text-dark fw-bold">{{ auth()->user()->house_no }} -
                                     {{ auth()->user()->street }}</p>
                             </div>
                             <div class="col-md-4">

@@ -24,7 +24,10 @@ return new class extends Migration
 
             $table->string('service_type');
             $table->enum('status', ['pending', 'approved', 'completed', 'cancelled', 'rejected',
-            'rescheduled', 'Done', 'Missed'])->default('pending');
+            'rescheduled', 'Done', 'Missed', 'checked-in', 'late'])->default('pending');
+
+            $table->timestamp('checked_in_at')->nullable();
+            $table->timestamp('late_at')->nullable();
 
             $table->string('administered_by')->nullable();
             $table->string('batch_no')->nullable();

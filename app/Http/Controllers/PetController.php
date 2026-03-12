@@ -134,13 +134,20 @@ class PetController extends Controller
         $ownerBookedDates = [];
 
         foreach ($appointments as $appt) {
-            $date = $appt->appointment_date;
-            $time = date('H:i', strtotime($appt->appointment_time));
+        $date = $appt->appointment_date;
+        $time = date('H:i', strtotime($appt->appointment_time));
 
-            if (!isset($bookedSlots[$date])) {
-                $bookedSlots[$date] = [];
-            }
-            $bookedSlots[$date][] = $time;
+        if (!isset($bookedSlots[$date])) {
+            $bookedSlots[$date] = [];
+        }
+
+        $bookedSlots[$date][] = $time;
+
+        // If service is kapon, mark the NEXT slot as booked too
+        if (strtolower($appt->service_type) === 'kapon') {
+            $nextSlot = date('H:i', strtotime($appt->appointment_time . ' +30 minutes'));
+            $bookedSlots[$date][] = $nextSlot;
+        }
 
             // If the logged-in owner already has any appointment on this day,
             // we capture the specific status and ID to tell the frontend whether to show "Visit Done" or "You Already Booked".
@@ -374,21 +381,26 @@ class PetController extends Controller
             return back()->with('error', 'Please scan a QR code or enter an ID.');
         }
 
-        // Extracts the ID from the end of the URL (e.g., http://127.0.0.1:8000/verify-pet/9 -> 9)
-        $petId = basename(parse_url($input, PHP_URL_PATH));
+        // 1. If it's a full URL, extract the last segment
+        if (filter_var($input, FILTER_VALIDATE_URL)) {
+            $petId = basename(parse_url($input, PHP_URL_PATH));
+        } else {
+            // 2. Otherwise use the input directly (could be a custom ID or primary ID)
+            $petId = $input;
+        }
 
         // Try finding by internal ID or pet_id (whichever exists in schema)
         $pet = Pet::withTrashed()->where(function ($q) use ($petId) {
-            $q->where('id', $petId)->orWhere('pet_id', $petId);
+            $q->where('id', $petId)
+                ->orWhere('pet_id', 'like', "%{$petId}%");
         })->first();
 
         if ($pet) {
-            // We send it to the pet-records route with the pet_id parameter
-            // The pet records view looks for ?pet_id= so we pass the pet's primary ID.
+            // Forward to the pet records with the primary DB ID for unambiguous filtering
             return redirect()->route('admin.pet-records', ['pet_id' => $pet->id]);
         }
 
-        return back()->with('error', 'Pet record not found: ' . $petId);
+        return back()->with('error', 'Pet record not found for: ' . $petId);
     }
     public function update(Request $request, $id)
     {
@@ -413,11 +425,53 @@ class PetController extends Controller
             $pet->image_url = '/storage/' . $path;
         }
 
+        $oldStatus = $pet->status;
+        $newStatus = $request->status ?? $pet->status;
+
         $pet->name = $request->name;
         $pet->species = $request->species;
         $pet->breed = $request->breed;
+        $pet->status = $newStatus;
         $pet->save();
 
+        if ($oldStatus !== 'DECEASED' && $newStatus === 'DECEASED') {
+            session()->flash('status_changed', [
+                'type' => 'DECEASED',
+                'pet_name' => $pet->name
+            ]);
+        }
+
         return back()->with('success', 'Pet profile updated successfully!');
+    }
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:11',
+            'gender' => 'nullable|string',
+            'house_no' => 'nullable|string|max:255',
+            'street' => 'nullable|string|max:255',
+            'barangay' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'province' => 'required|string|max:255',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        $data = $request->only([
+            'name', 'email', 'phone', 'gender',
+            'house_no', 'street', 'barangay', 'city', 'province'
+        ]);
+
+        if ($request->hasFile('profile_image')) {
+            $path = $request->file('profile_image')->store('profile_images', 'public');
+            $data['profile_image'] = $path;
+        }
+
+        $user->update($data);
+
+        return back()->with('success', 'Profile updated successfully!');
     }
 }

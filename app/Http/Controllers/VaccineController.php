@@ -64,7 +64,7 @@ class VaccineController extends Controller
 
         // AUTOMATIC INVENTORY SYNC (Atomic Transaction)
         // Find the matching vaccine inventory and decrement it
-        $inventory = \App\Models\VaccineInventory::where('name', $request->vaccine_name)->first();
+        $inventory = VaccineInventory::where('name', $request->vaccine_name)->first();
         if ($inventory && $inventory->stock > 0) {
             $inventory->decrement('stock');
         }

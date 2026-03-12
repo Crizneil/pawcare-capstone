@@ -18,7 +18,7 @@ class User extends Authenticatable
         'password',
         'role',
         'profile_image',
-        'house_number',
+        'house_no',
         'street',
         'barangay',
         'city',
@@ -50,5 +50,9 @@ class User extends Authenticatable
     public function sendPasswordResetNotification($token)
     {
         Mail::to($this->email)->send(new ResetPasswordEmail($token, $this->email));
+    }
+    public function getFullAddressAttribute()
+    {
+        return "{$this->house_number} - {$this->street}, {$this->barangay}, {$this->city}, {$this->province}";
     }
 }

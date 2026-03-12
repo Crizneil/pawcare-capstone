@@ -22,6 +22,8 @@ class Appointment extends Model
         'appointment_time',
         'service_type',
         'status',
+        'checked_in_at',
+        'late_at',
         'notes',
         'rejection_reason',
         'administered_by',
