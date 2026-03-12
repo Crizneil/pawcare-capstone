@@ -5,7 +5,6 @@
                 <h5 class="fw-bold">Edit {{ $pet->name }}'s Profile</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            {{-- Update this route name to match your actual route --}}
             <form action="{{ route('pet-owner.update-pet', $pet->id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
