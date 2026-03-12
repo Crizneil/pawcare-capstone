@@ -1,5 +1,9 @@
 # 🐾 PawCare: Municipal Pet Management System
 
+<div align="center">
+  <img src="public/assets/images/readme-header.png" alt="PawCare Dashboard Preview" width="100%">
+</div>
+
 **PawCare** is an advanced, data-driven Municipal Pet Management System designed to streamline pet registration, vaccination tracking, and clinical appointments for local government units.
 
 ---
