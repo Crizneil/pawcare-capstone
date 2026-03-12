@@ -45,9 +45,3 @@
 
 ---
 
-## 🎯 Defense Ready
-This repository contains the **Master Defense Guide** (`DEFENSE_GUIDE.md`) which includes technical deep-dives into every core logic flow and a structured presentation script for the final defense.
-
----
-
-**Developed for PawCare Capstone Defense - March 2026**

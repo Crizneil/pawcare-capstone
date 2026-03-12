@@ -34,6 +34,11 @@
         .grayscale:hover {
             filter: grayscale(0%);
         }
+
+        /* Force SweetAlert to appear in front of Bootstrap Modals */
+        .swal2-container {
+            z-index: 999999 !important;
+        }
     </style>
 </head>
 
