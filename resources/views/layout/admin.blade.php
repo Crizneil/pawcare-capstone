@@ -183,6 +183,7 @@
         lucide.createIcons();
 
         $(document).ready(function () {
+            // Handle Session Alerts
             @if(session('success'))
                 Swal.fire({
                     icon: 'success',
@@ -220,58 +221,66 @@
                     }
                 });
             @endif
-        });
 
-        $(document).ready(function () {
-        // Global Form Submission Handler
-        $(document).on('submit', 'form', function (e) {
-            const $form = $(this);
+            // Global Form Submission Handler
+            $(document).on('submit', 'form', function (e) {
+                const $form = $(this);
 
-            // 1. If we already confirmed this specific form, let it submit
-            if ($form.data('confirmed')) return true;
+                // Prevent duplicate prompt if already confirmed
+                if ($form.data('confirmed')) {
+                    return true;
+                }
 
-            const $submitBtn = $form.find('button[type="submit"]');
-            const $statusSelect = $form.find('select[name="status"]');
+                const $submitBtn = $form.find('button[type="submit"]');
+                const $statusSelect = $form.find('select[name="status"]');
 
-            // Check action types
-            const isDeleteAction = $form.find('input[name="_method"][value="DELETE"]').length > 0 ||
-                                $submitBtn.text().trim().toLowerCase().includes('delete');
-            const isDeceasedStatus = $statusSelect.length && $statusSelect.val() === 'DECEASED';
+                // Identify action types
+                const isDeleteAction = $form.find('input[name="_method"][value="DELETE"]').length > 0 ||
+                                       $submitBtn.text().trim().toLowerCase().includes('delete');
+                const isDeceasedStatus = $statusSelect.length && $statusSelect.val() === 'DECEASED';
 
-            // --- LOGIC FOR CUSTOM MODALS ---
-            if (isDeleteAction && $form.closest('[id^="delete"]').length > 0) {
-                return true;
-            }
+                // Bypass custom logic for specific delete modals
+                if (isDeleteAction && $form.closest('[id^="delete"]').length > 0) {
+                    return true;
+                }
 
-            // 2. Handle SweetAlert for "DECEASED" status (Edit Modal)
-            if (isDeceasedStatus) {
-                e.preventDefault();
-                Swal.fire({
-                    title: 'Confirm Deceased Status',
-                    text: "Marking this pet as DECEASED will archive the record. This is a solemn action.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#2c3e50',
-                    confirmButtonText: 'Yes, confirm DECEASED',
-                    cancelButtonText: 'Cancel',
-                    customClass: { popup: 'rounded-4 border-0', confirmButton: 'rounded-pill px-4', cancelButton: 'rounded-pill px-4' }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $form.data('confirmed', true);
-                        $form[0].submit();
+                // Intercept DECEASED status modifications
+                if (isDeceasedStatus) {
+                    e.preventDefault();
+                    
+                    Swal.fire({
+                        title: 'Confirm Deceased Status',
+                        text: "Marking this pet as DECEASED will archive the record. This is a solemn action.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#2c3e50',
+                        confirmButtonText: 'Yes, confirm DECEASED',
+                        cancelButtonText: 'Cancel',
+                        customClass: { 
+                            popup: 'rounded-4 border-0 shadow-lg', 
+                            confirmButton: 'rounded-pill px-4', 
+                            cancelButton: 'rounded-pill px-4' 
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $form.data('confirmed', true);
+                            $form[0].submit();
+                        }
+                    });
+                    
+                    return;
+                }
+
+                // Automatically close Bootstrap modals on successful submission
+                const $modal = $form.closest('.modal');
+                if ($modal.length && typeof bootstrap !== 'undefined') {
+                    const modalInstance = bootstrap.Modal.getInstance($modal[0]);
+                    if (modalInstance) {
+                        modalInstance.hide();
                     }
-                });
-                return;
-            }
-
-            // 3. Auto-close modals for all other successful clicks
-            const $modal = $form.closest('.modal');
-            if ($modal.length && typeof bootstrap !== 'undefined') {
-                const modalInstance = bootstrap.Modal.getInstance($modal[0]);
-                if (modalInstance) modalInstance.hide();
-            }
+                }
+            });
         });
-    });
     </script>
     @include('partials._chat_widget')
 </body>
