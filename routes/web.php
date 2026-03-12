@@ -130,6 +130,7 @@ Route::prefix('staff')->name('staff.')->middleware(['auth', 'role:staff'])->grou
     Route::post('/appointments/store', [StaffController::class, 'storeAppointment'])->name('appointments.store');
     Route::post('/appointments/{id}/reschedule', [StaffController::class, 'reschedule'])->name('appointments.reschedule');
     Route::get('/appointments/booked-slots', [StaffController::class, 'getBookedSlots'])->name('appointments.slots');
+    Route::get('/generate-report', [StaffController::class, 'generateReport'])->name('generate-report');
 
     // Pet Records & Vaccination
     Route::get('/pet-records', [StaffController::class, 'petRecords'])->name('pet-records');
