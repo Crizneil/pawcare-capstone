@@ -32,12 +32,12 @@ class AdminController extends Controller
             ->where('status', 'approved')
             ->count();
 
-        $requests = \App\Models\UserRequest::where('status', 'pending')
+        $requests = UserRequest::where('status', 'pending')
             ->with(['pet', 'requester'])
             ->get();
 
         // Fetch low stock vaccines to display an alert
-        $lowStockVaccines = \App\Models\VaccineInventory::whereColumn('stock', '<=', 'low_stock_threshold')->get();
+        $lowStockVaccines = VaccineInventory::whereColumn('stock', '<=', 'low_stock_threshold')->get();
 
         return view('admin.dashboard', compact(
             'totalPets',
